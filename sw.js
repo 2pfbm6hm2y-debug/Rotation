@@ -1,5 +1,5 @@
 /* Rotation service worker: keeps the app opening offline. */
-const APP_CACHE = 'rotation-app-1.7.2';
+const APP_CACHE = 'rotation-app-1.8.0';
 const FONT_CACHE = 'rotation-fonts-1';
 const APP_FILES = ['./', './index.html', './manifest.webmanifest', './icons/tees-180.png', './icons/tees-192.png', './icons/tees-512.png', './rotation-template.xlsx', './lib/u2netp.json', './lib/u2netp.bin', './lib/LICENSE-U2Net.txt'];
 

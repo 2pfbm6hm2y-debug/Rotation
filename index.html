@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-title" content="Rotation">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/icon-180.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/tees-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/tees-192.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}</style>
 <title>Rotation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -692,7 +692,7 @@ void main(){ ivec3 q = here(); o = vec4(clamp(at(uX, uXL, q.x, q.y, 0).x, 0.0, 1
 <script>
 'use strict';
 (() => {
-const VERSION = '1.7.1';
+const VERSION = '1.7.2';
 const KEY = 'lemari:data:v1', UIKEY = 'lemari:ui:v1';
 const INSTALLED = !!document.querySelector('link[rel="manifest"]'); // the home-screen build can save files, the preview can't
 
@@ -1362,7 +1362,7 @@ function saveLaundry() {
 }
 
 /* Welcome: the problem it solves, how, then bring in the closet. Shown on first open and from More. */
-const APP_SVG = '<svg viewBox="0 0 512 512" aria-hidden="true"><rect width="512" height="512" fill="#3B3FA6"/><g transform="translate(0 -26)"><g fill="none" stroke="#F3F2F7" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"><path d="M216 156a40 40 0 1 1 56 36.5c-10 4.4-16 12.8-16 23.5v14"/><path d="M256 230 94 342c-14 9.6-7 31.5 10 31.5h304c17 0 24-21.9 10-31.5L256 230Z"/></g><path d="M338 374v40" stroke="#E6D6B6" stroke-width="7" stroke-linecap="round"/><path d="M310 420h56v62l-7 8-7-8-7 8-7-8-7 8-7-8-7 8-7-8Z" fill="#E6D6B6"/><circle cx="338" cy="438" r="7" fill="#3B3FA6"/></g></svg>';
+const APP_SVG = '<svg viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="rt-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF7FA"/><stop offset="1" stop-color="#F6E5ED"/></linearGradient><filter id="rt-sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#7A1F45" flood-opacity=".16"/></filter></defs><rect width="512" height="512" fill="url(#rt-bg)"/><g transform="translate(268 572) rotate(-22) translate(-110 -424) scale(1.1)" filter="url(#rt-sh)"><path d="M72 22Q100 46 128 22L160 34 196 78 172 104 148 90V186H52V90L28 104 4 78 40 34Z" fill="#F9CEDD" stroke="#F9CEDD" stroke-width="16" stroke-linejoin="round"/></g><g transform="translate(268 572) rotate(-5) translate(-110 -420) scale(1.1)" filter="url(#rt-sh)"><path d="M72 22Q100 46 128 22L160 34 196 78 172 104 148 90V186H52V90L28 104 4 78 40 34Z" fill="#F08DB1" stroke="#F08DB1" stroke-width="16" stroke-linejoin="round"/></g><g transform="translate(268 572) rotate(12) translate(-110 -416) scale(1.1)" filter="url(#rt-sh)"><path d="M72 22Q100 46 128 22L160 34 196 78 172 104 148 90V186H52V90L28 104 4 78 40 34Z" fill="#DB3F7A" stroke="#DB3F7A" stroke-width="16" stroke-linejoin="round"/><path d="M86 30h28v20a4 4 0 0 1-4 4H90a4 4 0 0 1-4-4Z" fill="#FFF1DE"/></g></svg>';
 const TICK = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg>';
 const WL_ICON = {
   repeat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3.5V8h4.5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20.5V16h-4.5"/></svg>',

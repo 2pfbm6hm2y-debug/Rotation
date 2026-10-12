@@ -12,8 +12,8 @@
 <meta name="apple-mobile-web-app-title" content="Rotation">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icons/tees-180.png">
-<link rel="icon" type="image/png" sizes="192x192" href="icons/tees-192.png">
+<link rel="apple-touch-icon" href="icons/fan-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/fan-192.png">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}</style>
 <title>Rotation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -295,8 +295,12 @@ a.btn{text-decoration:none}
 .board.acc .bd-bottom{left:10%;right:34%;top:41%;bottom:3%}
 .board.acc .bd-dress{left:2%;right:28%;top:4%;bottom:4%}
 .board.acc .bd-layer{left:-6%;width:54%;top:6%;height:50%}
-.bd-bag{right:0;width:38%;top:27%;height:33%;z-index:4}
-.bd-shoes{right:0;width:38%;bottom:3%;height:27%;z-index:4}
+.bd-bag{right:0;width:38%;top:27%;height:33%;z-index:5}
+.bd-shoes{right:0;width:38%;bottom:3%;height:27%;z-index:5}
+.bd-over{left:6%;right:6%;top:2%;height:52%;z-index:4}
+.bd-over.on-dress{left:9%;right:9%;top:3%;height:50%}
+.board.acc .bd-over{left:-1%;right:25%;top:2%;height:49%}
+.board.acc .bd-over.on-dress{left:0;right:26%;top:3%;height:48%}
 .seg.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
 .tag-body{display:grid;grid-template-columns:86px minmax(0,1fr);gap:4px;padding:10px 0 0 12px;align-items:start}
 .tag-body .pieces{padding:0 6px 2px 8px}
@@ -692,7 +696,7 @@ void main(){ ivec3 q = here(); o = vec4(clamp(at(uX, uXL, q.x, q.y, 0).x, 0.0, 1
 <script>
 'use strict';
 (() => {
-const VERSION = '1.8.0';
+const VERSION = '1.8.1';
 const KEY = 'lemari:data:v1', UIKEY = 'lemari:ui:v1';
 const INSTALLED = !!document.querySelector('link[rel="manifest"]'); // the home-screen build can save files, the preview can't
 
@@ -1077,7 +1081,7 @@ function suggest(date, occ, seed) {
     const layer = ranked.find(id => !usedL.has(id)) || ranked[0] || null;
     if (layer) usedL.add(layer);
     const needs = c.main.some(id => IX.byId.get(id).needsLayer);
-    const idea = { main: c.main, layer, layerOn: !!layer && needs };
+    const idea = { main: c.main, layer, layerOn: !!layer && needs, layerAuto: true }; // layerAuto: on or off because of the top, not your choice
     // different rested shoes and bags across the ideas where possible, else the best one again
     for (const t of ACC) {
       const r = rankAcc(t, wornIds(idea), date, occ, seed);
@@ -1108,12 +1112,15 @@ const SIL = {
   skirt: '<path d="M31 6H69L87 92Q50 99 13 92Z"/>',
   dress: '<path d="M37 3 44 2Q50 9 56 2L63 3 66 27 85 93Q50 100 15 93L34 27Z"/>',
   layer: '<path d="M30 8 42 4 50 34 58 4 70 8 95 70 85 74 74 42V96H26V42L15 74 5 70Z"/><path d="M50 34V96" fill="none"/>',
+  // the same jacket worn open, so the top shows through the front, and a top's body as seen under it
+  under: '<path d="M36 6Q50 16 64 6L72 9V96H28V9Z"/>',
+  layerOpen: '<path d="M30 8 43 4 47 36 41 96H26V44L15 74 5 70Z"/><path d="M70 8 57 4 53 36 59 96H74V44L85 74 95 70Z"/>',
   shoes: `<g transform="translate(-4 -14)"><path d="${SHOE}"/><path d="M8 69h84" fill="none"/></g><g transform="translate(4 10)"><path d="${SHOE}"/><path d="M8 69h84" fill="none"/></g>`,
   bag: '<path d="M31 42C31 16 69 16 69 42h-7c0-17-24-17-24 0Z"/><path d="M13 44c0-3 2-5 5-5h64c3 0 5 2 5 5l-4 44c0 3-3 5-6 5H23c-3 0-6-2-6-5Z"/><path d="M13 54h74" fill="none"/><rect x="45" y="50" width="10" height="9" rx="2"/>'
 };
 // a coloured clothing shape, used until a piece has its own photo
-function silhouette(it) {
-  const kind = it.type === 'bottom' && /skirt/i.test(it.name) ? 'skirt' : it.type;
+function silhouette(it, variant) {
+  const kind = variant === 'open' ? 'layerOpen' : variant === 'under' ? 'under' : it.type === 'bottom' && /skirt/i.test(it.name) ? 'skirt' : it.type;
   const c = COLORS[it.color] || COLORS.other, pid = 'pt-' + it.color;
   const defs = it.color === 'batik' ? `<defs><pattern id="${pid}" width="7" height="7" patternUnits="userSpaceOnUse"><rect width="7" height="7" fill="#7A4B2A"/><circle cx="2" cy="2" r="1.4" fill="#E8D2A6"/><circle cx="5.5" cy="5.5" r="1.1" fill="#2B1B12"/></pattern></defs>`
     : it.color === 'stripes' ? `<defs><pattern id="${pid}" width="6" height="6" patternUnits="userSpaceOnUse"><rect width="6" height="6" fill="#F4F2EE"/><rect width="2" height="6" fill="#C43C3A"/></pattern></defs>` : '';
@@ -1123,8 +1130,8 @@ function silhouette(it) {
 const pieceArt = it => (it.pic ? `<img data-photo="${it.pic}" alt="">` : silhouette(it));
 function board(ids, cls) {
   const its = ids.map(id => IX.byId.get(id)).filter(Boolean), g = t => its.find(i => i.type === t);
-  const dress = g('dress'), cell = (c, it) => (it ? `<div class="${c}">${pieceArt(it)}</div>` : ''), acc = g('shoes') || g('bag');
-  return `<div class="board ${acc ? 'acc ' : ''}${cls || ''}" aria-hidden="true">${cell('bd-layer', g('layer'))}${dress ? cell('bd-dress', dress) : cell('bd-bottom', g('bottom')) + cell('bd-top', g('top'))}${cell('bd-bag', g('bag'))}${cell('bd-shoes', g('shoes'))}</div>`;
+  const dress = g('dress'), cell = (c, it) => (it ? `<div class="${c}">${pieceArt(it)}</div>` : ''), acc = g('shoes') || g('bag'), layer = g('layer');
+  return `<div class="board ${acc ? 'acc ' : ''}${cls || ''}" aria-hidden="true">${layer && layer.pic ? cell('bd-layer', layer) : ''}${dress ? cell('bd-dress', dress) : cell('bd-bottom', g('bottom')) + (layer && !layer.pic && g('top') && !g('top').pic ? `<div class="bd-top">${silhouette(g('top'), 'under')}</div>` : cell('bd-top', g('top')))}${layer && !layer.pic ? `<div class="bd-over${dress ? ' on-dress' : ''}">${silhouette(layer, 'open')}</div>` : ''}${cell('bd-bag', g('bag'))}${cell('bd-shoes', g('shoes'))}</div>`;
 }
 function statusPill(item, date) {
   if (item.out) return '<span class="pill off">Off</span>';
@@ -1362,7 +1369,7 @@ function saveLaundry() {
 }
 
 /* Welcome: the problem it solves, how, then bring in the closet. Shown on first open and from More. */
-const APP_SVG = '<svg viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="rt-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF7FA"/><stop offset="1" stop-color="#F6E5ED"/></linearGradient><filter id="rt-sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#7A1F45" flood-opacity=".16"/></filter></defs><rect width="512" height="512" fill="url(#rt-bg)"/><g transform="translate(268 572) rotate(-22) translate(-110 -424) scale(1.1)" filter="url(#rt-sh)"><path d="M72 22Q100 46 128 22L160 34 196 78 172 104 148 90V186H52V90L28 104 4 78 40 34Z" fill="#F9CEDD" stroke="#F9CEDD" stroke-width="16" stroke-linejoin="round"/></g><g transform="translate(268 572) rotate(-5) translate(-110 -420) scale(1.1)" filter="url(#rt-sh)"><path d="M72 22Q100 46 128 22L160 34 196 78 172 104 148 90V186H52V90L28 104 4 78 40 34Z" fill="#F08DB1" stroke="#F08DB1" stroke-width="16" stroke-linejoin="round"/></g><g transform="translate(268 572) rotate(12) translate(-110 -416) scale(1.1)" filter="url(#rt-sh)"><path d="M72 22Q100 46 128 22L160 34 196 78 172 104 148 90V186H52V90L28 104 4 78 40 34Z" fill="#DB3F7A" stroke="#DB3F7A" stroke-width="16" stroke-linejoin="round"/><path d="M86 30h28v20a4 4 0 0 1-4 4H90a4 4 0 0 1-4-4Z" fill="#FFF1DE"/></g></svg>';
+const APP_SVG = '<svg viewBox="0 0 512 512" aria-hidden="true"><defs><linearGradient id="rt-bg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFF7FA"/><stop offset="1" stop-color="#F6E5ED"/></linearGradient><filter id="rt-sh" x="-30%" y="-30%" width="160%" height="160%"><feDropShadow dx="0" dy="10" stdDeviation="12" flood-color="#7A1F45" flood-opacity=".16"/></filter></defs><rect width="512" height="512" fill="url(#rt-bg)"/><g transform="translate(256 250) scale(.95) translate(-242 -282.5)"><g transform="translate(268 572) rotate(-22) translate(-110 -424) scale(1.1)" filter="url(#rt-sh)"><path d="M72 22Q100 46 128 22L160 34 196 78 172 104 148 90V186H52V90L28 104 4 78 40 34Z" fill="#F9CEDD" stroke="#F9CEDD" stroke-width="16" stroke-linejoin="round"/></g><g transform="translate(268 572) rotate(-5) translate(-110 -420) scale(1.1)" filter="url(#rt-sh)"><path d="M72 22Q100 46 128 22L160 34 196 78 172 104 148 90V186H52V90L28 104 4 78 40 34Z" fill="#F08DB1" stroke="#F08DB1" stroke-width="16" stroke-linejoin="round"/></g><g transform="translate(268 572) rotate(12) translate(-110 -416) scale(1.1)" filter="url(#rt-sh)"><path d="M72 22Q100 46 128 22L160 34 196 78 172 104 148 90V186H52V90L28 104 4 78 40 34Z" fill="#DB3F7A" stroke="#DB3F7A" stroke-width="16" stroke-linejoin="round"/><path d="M86 30h28v20a4 4 0 0 1-4 4H90a4 4 0 0 1-4-4Z" fill="#FFF1DE"/></g></g></svg>';
 const TICK = '<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 6.2l2.3 2.3 4.7-5"/></svg>';
 const WL_ICON = {
   repeat: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.3-4.9L4 8"/><path d="M4 3.5V8h4.5"/><path d="M4 13a8 8 0 0 0 14.3 4.9L20 16"/><path d="M20 20.5V16h-4.5"/></svg>',
@@ -2230,7 +2237,7 @@ function swapSlot(i, slot) {
   const cycle = (ids, cur, set) => { if (!ids.length || (ids.length === 1 && ids[0] === cur)) { toast(`No other ${slot === 'shoes' ? 'pair of shoes' : T1[slot].toLowerCase()} fits here.`); return false; } const k = ids.indexOf(cur); set(ids[(k + 1) % ids.length]); return true; };
   if (SLOTS.includes(slot)) {
     const ranked = slot === 'layer' ? rankLayers(c.main, date, occ, seed) : rankAcc(slot, wornIds(c), date, occ, seed);
-    cycle(ranked, c[slot], id => { c[slot] = id; c[slot + 'On'] = true; }); render(); return;
+    cycle(ranked, c[slot], id => { c[slot] = id; c[slot + 'On'] = true; if (slot === 'layer') c.layerAuto = false; }); render(); return;
   }
   const its = c.main.map(id => IX.byId.get(id));
   const cur = its.find(x => x.type === slot); if (!cur) return;
@@ -2244,7 +2251,9 @@ function swapSlot(i, slot) {
   pool.sort((a, b) => b[1] - a[1]);
   if (!cycle(pool.map(p => p[0]), cur.id, id => { c.main = c.main.map(m => (m === cur.id ? id : m)); })) return;
   if (c.layer && c.main.some(m => isClash(m, c.layer))) c.layer = rankLayers(c.main, date, occ, seed)[0] || null;
-  if (c.main.some(id => IX.byId.get(id).needsLayer) && c.layer) c.layerOn = true;
+  const needs = c.main.some(id => IX.byId.get(id).needsLayer);
+  if (c.layerAuto !== false) c.layerOn = !!c.layer && needs; // switched on for the old top: follow the new one
+  else if (needs && c.layer) c.layerOn = true;
   for (const t of ACC) if (c[t] && wornIds(c).some(m => isClash(m, c[t]))) { c[t] = rankAcc(t, wornIds(c), date, occ, seed)[0] || null; c[t + 'On'] = !!c[t]; }
   render();
 }
@@ -2359,8 +2368,7 @@ document.addEventListener('click', e => {
     case 'backup-share': if (SH && SH.file) offerFile(`rotation-backup-${todayStr()}.json`, SH.file, 'application/json'); break;
     case 'shuffle': UI.shuffle++; render(); break;
     case 'swap': swapSlot(i, el.dataset.slot); break;
-    case 'slot-on': UI.sugg.list[i][el.dataset.slot + 'On'] = true; render(); break;
-    case 'slot-off': UI.sugg.list[i][el.dataset.slot + 'On'] = false; render(); break;
+    case 'slot-on': case 'slot-off': { const c = UI.sugg.list[i]; c[el.dataset.slot + 'On'] = act === 'slot-on'; if (el.dataset.slot === 'layer') c.layerAuto = false; render(); break; }
     case 'wear': wear(i); break;
     case 'nope': openNope(i); break;
     case 'nope-save': saveNope(); break;

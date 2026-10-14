@@ -20,7 +20,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=DM+Mono:wght@400;500&display=swap">
 <style>
-/* Layout: one phone-width column. Outfit suggestions are hang tags, clothes carry pinked fabric swatches, tab bar at the bottom. */
+/* Layout: one phone-width column. Today is a freshness picker, clothes carry pinked fabric swatches, tab bar at the bottom. */
 :root{
   --paper:#F8F3F5; --card:#FFFFFF; --sunk:#F0E7EB; --line:#E5D9DF; --ink:#221B20; --ink2:#51464D; --muted:#76696F;
   --accent:#B92E64; --accent-ink:#FFFFFF; --accent-soft:#FBE3EC; --soga:#8C5A2E;
@@ -342,6 +342,27 @@ input[type="range"]{width:100%;accent-color:var(--accent);min-height:32px}
 .mm-badge{position:absolute;top:5px;right:6px;font-family:var(--label);font-size:10px;font-weight:600;padding:1px 5px;border-radius:999px;background:var(--card)}
 .mm-badge.yes{color:var(--ready)} .mm-badge.no{color:var(--clash)} .mm-badge.wash{color:var(--muted)}
 .mm-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.mm-actions .btn[aria-pressed="true"]{background:var(--accent-soft);color:var(--accent)}
+.mm-age{font-family:var(--label);font-size:10px;letter-spacing:.02em;color:var(--ready);margin-top:-2px}
+.mm-age.warn{color:var(--muted)}
+.pk-stage{display:grid;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px}
+.pk-stage.two{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:stretch}
+.pk-stage .board.big{max-width:190px}
+.pk-rate{display:flex;justify-content:center;gap:6px;margin-top:6px}
+.pk-rate .btn svg{width:14px;height:14px}
+.pk-rate .btn[aria-pressed="true"]{background:var(--accent-soft)}
+.pk-rate .btn.nope[aria-pressed="true"]{background:var(--clash-soft);color:var(--clash)}
+.pk-ootd{display:grid;grid-template-rows:minmax(0,1fr) auto;gap:6px;text-align:left;font-size:12.5px;color:var(--ink2);line-height:1.3}
+.pk-ootd img{width:100%;height:100%;min-height:0;max-height:260px;object-fit:cover;border-radius:12px;display:block}
+.pk-ootd b{color:var(--ink);font-weight:600}
+.pk-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px}
+.pk-chip{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:0 14px;border-radius:999px;border:1.5px dashed var(--line);color:var(--accent);font-weight:600;font-size:14px}
+.pk-chip.open{border-style:solid;border-color:var(--accent)}
+.pk-chip.on{border-style:solid;border-color:var(--line);background:var(--card);color:var(--ink);padding:0 4px 0 10px;font-weight:500}
+.pk-chip.on > button{display:inline-flex;align-items:center;gap:8px;max-width:180px}
+.pk-chip.on span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pk-x{width:30px;height:30px;display:grid;place-items:center;color:var(--muted)}
+.pk-x svg{width:14px;height:14px}
 .mm-actions .btn{flex:1 1 auto}
 .mm-actions .btn svg{width:16px;height:16px}
 .plus{font-family:var(--label);font-size:11px;color:var(--muted);padding-left:30px;margin-block:-4px}
@@ -696,7 +717,7 @@ void main(){ ivec3 q = here(); o = vec4(clamp(at(uX, uXL, q.x, q.y, 0).x, 0.0, 1
 <script>
 'use strict';
 (() => {
-const VERSION = '1.8.1';
+const VERSION = '2.0.0';
 const KEY = 'lemari:data:v1', UIKEY = 'lemari:ui:v1';
 const INSTALLED = !!document.querySelector('link[rel="manifest"]'); // the home-screen build can save files, the preview can't
 
@@ -704,7 +725,6 @@ const INSTALLED = !!document.querySelector('link[rel="manifest"]'); // the home-
 const TYPES = [['top', 'Top', 'Tops'], ['bottom', 'Bottom', 'Bottoms'], ['dress', 'Dress', 'Dresses'], ['layer', 'Layer', 'Layers'], ['shoes', 'Shoes', 'Shoes'], ['bag', 'Bag', 'Bags']];
 const ACC = ['shoes', 'bag'];          // picked to go with an outfit, never washed
 const isAcc = t => ACC.includes(t);
-const SLOTS = ['layer', 'shoes', 'bag']; // extras added to the main pieces of an idea
 const T1 = Object.fromEntries(TYPES.map(t => [t[0], t[1]]));
 const TN = Object.fromEntries(TYPES.map(t => [t[0], t[2]]));
 const COLORS = {
@@ -898,7 +918,7 @@ let IX = null;
 let SH = null; // open sheet state
 let storageOk = true;
 const savedUI = (() => { try { return JSON.parse(lsGet(UIKEY) || '{}'); } catch (e) { return {}; } })();
-const UI = { tab: savedUI.tab === 'history' ? 'week' : (savedUI.tab || 'today'), weekDays: 8, date: todayStr(), occ: null, shuffle: 0, sugg: null, skip: new Set(),
+const UI = { tab: savedUI.tab === 'history' ? 'week' : ['today', 'week', 'closet', 'more'].includes(savedUI.tab) ? savedUI.tab : 'today', weekDays: 8, date: todayStr(), occ: null, pk: null,
   cType: savedUI.cType || 'all', cOcc: 'all', cSort: savedUI.cSort || 'order', q: '' };
 UI.occ = (savedUI.occFor && savedUI.occFor.date === UI.date && validOcc(savedUI.occFor.occ)) ? savedUI.occFor.occ : dayOcc(UI.date);
 function saveUI() { lsSet(UIKEY, JSON.stringify({ tab: UI.tab, cType: UI.cType, cSort: UI.cSort, occFor: { date: UI.date, occ: UI.occ } })); }
@@ -1024,78 +1044,144 @@ function colorPenalty(a, b) {
   if (a.color === b.color && !['black', 'white', 'other'].includes(a.color)) return 0.06;
   return 0;
 }
-function sepScore(t, b, date, seed) {
-  const k = pk(t.id, b.id);
-  return 0.5 * fresh(st(t, date).days) + 0.25 * fresh(st(b, date).days) + 0.25 * novel(comboSt(k, date).days) + (D.liked[k] ? 0.12 : 0) - colorPenalty(t, b) + 0.08 * rnd(seed + k);
+/* ---------- picker: tops and bottoms by freshness, with an optional layer, shoes and bag ---------- */
+const EXTRAS = [['layer', 'Layer'], ['shoes', 'Shoes'], ['bag', 'Bag']];
+// ready first, then resting, then in the wash; within each, longest since last worn first
+function byFresh(items, date, excl, avoid) {
+  const order = new Map(D.items.map((x, n) => [x.id, n]));
+  return items.map(i => { const s = st(i, date, excl); let g = !s.clean ? 2 : s.ready ? 0 : 1; if (g === 0 && avoid && avoid(i)) g = 1; return { i, g, d: s.days === null ? 1e6 : s.days }; })
+    .sort((a, b) => a.g - b.g || b.d - a.d || order.get(a.i.id) - order.get(b.i.id)).map(x => x.i);
 }
-function dressScore(d, date, seed) {
-  const s = st(d, date);
-  return 0.85 * fresh(s.days) + 0.15 * novel(s.days) + (D.liked[d.id] ? 0.12 : 0) + 0.08 * rnd(seed + d.id);
+const poolOf = (type, occ) => D.items.filter(i => i.type === type && eligible(i, occ));
+function freshLabel(s) {
+  if (!s.clean) return 'In the wash';
+  if (!s.ready) return s.days !== null && s.days < s.rest ? `Rests ${s.left}d` : `Planned ${fmtDM(s.next)}`;
+  return s.days === null ? 'Not worn yet' : s.days === 0 ? 'Today' : `${s.days}d ago`;
 }
-function layerScore(l, mains, date, seed) {
-  const s = st(l, date); let pen = 0;
-  for (const m of mains) pen = Math.max(pen, colorPenalty(l, m) * 0.6);
-  return (s.ready ? 1 : 0) + 0.5 * fresh(s.days) - pen + 0.1 * rnd(seed + l.id);
+// P: what the picker shows for one day. auto[slot] is true until you pick that slot yourself.
+function newPicker(date, occ, preset, logId) {
+  const P = { date, occ, mode: 'sep', top: null, bottom: null, dress: null, layer: null, shoes: null, bag: null, auto: { top: true, bottom: true, dress: true }, open: null, logId: logId || null };
+  for (const id of preset || []) { const it = IX.byId.get(id); if (it && it.type in P && !P[it.type]) { P[it.type] = id; if (it.type in P.auto) P.auto[it.type] = false; } }
+  if (P.dress && !P.top && !P.bottom) P.mode = 'dress';
+  return fillPicker(P);
 }
-function rankLayers(mainIds, date, occ, seed) {
-  const mains = mainIds.map(id => IX.byId.get(id));
-  return D.items.filter(l => l.type === 'layer' && eligible(l, occ) && st(l, date).clean && !mains.some(m => isClash(l.id, m.id)))
-    .map(l => [l.id, layerScore(l, mains, date, seed)]).sort((a, b) => b[1] - a[1]).map(x => x[0]);
-}
-// Shoes and a bag for an outfit: rested ones first, but an idea never goes without because everything is resting
-function accScore(a, worn, date, seed) {
-  const s = st(a, date); let pen = 0, bonus = 0;
-  for (const m of worn) { pen = Math.max(pen, colorPenalty(a, m) * 0.5); if (goes(a.id, m.id)) bonus = 0.3; }
-  return (s.ready ? 1 : 0) + 0.5 * fresh(s.days) + bonus - pen + 0.1 * rnd(seed + a.id);
-}
-function rankAcc(type, wornIds, date, occ, seed) {
-  const worn = wornIds.map(id => IX.byId.get(id)).filter(Boolean);
-  return D.items.filter(a => a.type === type && eligible(a, occ) && !worn.some(m => isClash(a.id, m.id)))
-    .map(a => [a.id, accScore(a, worn, date, seed)]).sort((x, y) => y[1] - x[1]).map(x => x[0]);
-}
-const wornIds = c => [...c.main, ...(c.layer && c.layerOn ? [c.layer] : [])];
-const ideaIds = c => [...c.main, ...SLOTS.filter(t => c[t] && c[t + 'On']).map(t => c[t])];
-function isStrict(main, date) {
-  const its = main.map(id => IX.byId.get(id));
-  if (!its.every(i => st(i, date).ready)) return false;
-  const k = mainKey(main); if (!k || its.length === 1) return true;
-  const c = comboSt(k, date); return (c.days === null || c.days >= D.rest.combo) && (c.daysNext === null || c.daysNext >= D.rest.combo);
-}
-function suggest(date, occ, seed) {
-  const el = D.items.filter(i => eligible(i, occ) && st(i, date).clean); // pieces in the laundry are never suggested
-  const tops = el.filter(i => i.type === 'top'), bottoms = el.filter(i => i.type === 'bottom'), dresses = el.filter(i => i.type === 'dress');
-  const C = [];
-  for (const d of dresses) { if (UI.skip.has(d.id)) continue; C.push({ main: [d.id], strict: st(d, date).ready, score: dressScore(d, date, seed) }); }
-  for (const t of tops) for (const b of bottoms) {
-    if (!allowedPair(t, b)) continue;
-    const k = pk(t.id, b.id); if (UI.skip.has(k)) continue;
-    C.push({ main: [t.id, b.id], strict: isStrict([t.id, b.id], date), score: sepScore(t, b, date, seed) });
+// fills what you haven't picked with the freshest piece that goes with what you have
+function fillPicker(P) {
+  const { date, occ, logId } = P, get = id => (id && IX.byId.get(id)) || null, first = a => (a[0] || {}).id || null;
+  if (P.mode === 'dress') { if (P.auto.dress || !get(P.dress)) P.dress = first(byFresh(poolOf('dress', occ), date, logId)); return P; }
+  const tops = byFresh(poolOf('top', occ), date, logId), bottoms = poolOf('bottom', occ);
+  const freshBottom = t => first(byFresh(bottoms.filter(b => !t || allowedPair(t, b)), date, logId));
+  if (!P.auto.top && get(P.top)) { if (P.auto.bottom || !get(P.bottom)) P.bottom = freshBottom(get(P.top)); }
+  else if (!P.auto.bottom && get(P.bottom)) { const b = get(P.bottom); P.top = first(tops.filter(t => allowedPair(t, b))); }
+  else {
+    P.top = null; P.bottom = null;
+    for (const t of tops) { const b = freshBottom(t); if (b) { P.top = t.id; P.bottom = b; break; } }
+    if (!P.top) { P.top = first(tops); P.bottom = freshBottom(null); }
   }
-  C.sort((x, y) => (y.strict - x.strict) || (y.score - x.score));
-  const out = [], used = new Set();
-  for (const c of C) { if (out.length >= 5) break; if (c.main.some(id => used.has(id))) continue; out.push(c); c.main.forEach(id => used.add(id)); }
-  if (out.length < 5) { const first = new Set(out.map(c => c.main[0])); for (const c of C) { if (out.length >= 5) break; if (out.includes(c) || first.has(c.main[0])) continue; out.push(c); first.add(c.main[0]); } }
-  const usedL = new Set(), usedA = { shoes: new Set(), bag: new Set() };
-  return out.map(c => {
-    const ranked = rankLayers(c.main, date, occ, seed);
-    const layer = ranked.find(id => !usedL.has(id)) || ranked[0] || null;
-    if (layer) usedL.add(layer);
-    const needs = c.main.some(id => IX.byId.get(id).needsLayer);
-    const idea = { main: c.main, layer, layerOn: !!layer && needs, layerAuto: true }; // layerAuto: on or off because of the top, not your choice
-    // different rested shoes and bags across the ideas where possible, else the best one again
-    for (const t of ACC) {
-      const r = rankAcc(t, wornIds(idea), date, occ, seed);
-      const pick = r.find(id => !usedA[t].has(id) && st(IX.byId.get(id), date).ready) || r[0] || null;
-      if (pick) usedA[t].add(pick);
-      idea[t] = pick; idea[t + 'On'] = !!pick;
-    }
-    return idea;
-  });
+  return P;
 }
-function getSugg() {
-  const key = `${UI.date}|${UI.occ}|${UI.shuffle}`;
-  if (!UI.sugg || UI.sugg.key !== key) UI.sugg = { key, list: suggest(UI.date, UI.occ, key) };
-  return UI.sugg.list;
+// the freshest clean layer, shoes or bag that goes with the main pieces (used when filling the week)
+function freshExtra(type, mainIds, date, occ) {
+  const its = byFresh(poolOf(type, occ).filter(x => !mainIds.some(m => isClash(x.id, m))), date);
+  return its.find(x => st(x, date).clean) ? its.find(x => st(x, date).clean).id : null;
+}
+function pickerHtml(P, where) {
+  const today = todayStr(), ex = P.logId, get = id => (id && IX.byId.get(id)) || null;
+  const main = P.mode === 'dress' ? [P.dress] : [P.top, P.bottom];
+  const sel = [...main, P.layer, P.shoes, P.bag].filter(Boolean);
+  const t = P.mode === 'sep' ? get(P.top) : null, b = P.mode === 'sep' ? get(P.bottom) : null;
+  const k = mainKey(main.filter(Boolean));
+  const photos = k && main.every(Boolean) ? comboPhotos(k, ex).filter(l => l.date <= today) : [];
+  const facts = [];
+  if (t && b) {
+    if (isClash(t.id, b.id)) facts.push(`<span class="pill" style="background:var(--clash-soft);color:var(--clash)">You said these don't go together</span>`);
+    else if (goes(t.id, b.id)) facts.push('<span class="pill ready">✓ Goes together</span>');
+    const c = comboSt(k, P.date, ex);
+    facts.push(c.last ? `<span class="pill off">Together ${esc(fmtDM(c.last))}</span>` : '<span class="pill new">New pairing</span>');
+  }
+  for (const id of sel) { const it = get(id); if (!it) continue; const s = st(it, P.date, ex);
+    if (!s.clean) facts.push(`<span class="pill wash">${esc(it.name)} in the wash</span>`);
+    else if (!s.ready && !isAcc(it.type)) facts.push(`<span class="pill rest">${esc(it.name)}: ${esc(freshLabel(s).toLowerCase())}</span>`); }
+  const needs = main.some(id => get(id) && get(id).needsLayer) && !P.layer;
+  const label = P.logId ? 'Save plan' : P.date === today ? 'Wear this' : P.date > today ? 'Plan this' : 'Log this';
+  const row = (slot, title, partners) => {
+    let its = poolOf(slot, P.occ);
+    if (get(P[slot]) && !its.some(i => i.id === P[slot])) its = [get(P[slot]), ...its]; // a pick from another occasion stays visible
+    const no = i => partners.some(p => isClash(i.id, p)), yes = i => partners.some(p => goes(i.id, p));
+    its = byFresh(its, P.date, ex, no);
+    const th = i => { const s = st(i, P.date, ex), n = no(i);
+      return `<button class="mm-th${n || !s.clean ? ' dim' : ''}" data-act="pk-pick" data-slot="${slot}" data-id="${i.id}" aria-pressed="${P[slot] === i.id}" aria-label="${esc(i.name)}, ${esc(freshLabel(s))}"><span class="art">${pieceArt(i)}</span>${yes(i) ? '<span class="mm-badge yes">✓</span>' : n ? '<span class="mm-badge no">✗</span>' : ''}<span class="mm-name">${esc(i.name)}</span><span class="mm-age${s.ready && s.clean ? '' : ' warn'}">${esc(freshLabel(s))}</span></button>`; };
+    const none = EXTRAS.some(e => e[0] === slot) ? `<button class="mm-th" data-act="pk-pick" data-slot="${slot}" data-id="" aria-pressed="${!P[slot]}"><span class="art"><span class="none">None</span></span><span class="mm-name">No ${slot === 'shoes' ? 'shoes' : T1[slot].toLowerCase()}</span></button>` : '';
+    return `<div class="mm-row"><span class="lab">${title} · ${its.length}</span><div class="mm-scroll" data-key="${where}-${slot}">${none}${its.map(th).join('') || '<span class="small muted" style="padding:20px 4px">Nothing here for this occasion.</span>'}</div></div>`;
+  };
+  const have = type => D.items.some(i => i.type === type && !i.out);
+  const chips = EXTRAS.filter(([type]) => have(type) || P[type]).map(([type, name]) => { const it = get(P[type]);
+    return it ? `<span class="pk-chip on${P.open === type ? ' open' : ''}"><button data-act="pk-extra" data-slot="${type}" aria-expanded="${P.open === type}">${sw(it, true)}<span>${esc(it.name)}</span></button><button class="pk-x" data-act="pk-pick" data-slot="${type}" data-id="" aria-label="Remove ${esc(it.name)}">${ICON.x}</button></span>`
+      : `<button class="pk-chip${P.open === type ? ' open' : ''}" data-act="pk-extra" data-slot="${type}" aria-expanded="${P.open === type}">+ ${name}</button>`; }).join('');
+  const hasDress = have('dress') || P.dress;
+  return `${where === 'sheet' ? `<div class="chips" role="radiogroup" aria-label="Occasion" style="margin-bottom:12px">${[...D.occasions, { id: 'any', name: 'Any' }].map(o => `<button class="chip" role="radio" aria-checked="${P.occ === o.id}" data-act="pk-occ" data-k="${o.id}">${esc(o.name)}</button>`).join('')}</div>` : ''}
+    <div class="pk-stage${photos.length ? ' two' : ''}"><div class="pk-look">${board(sel, 'big')}</div>
+      ${photos.length ? `<button class="pk-ootd" data-act="photo-view" data-key="${k}" aria-label="See your photos of this outfit"><img data-photo="${photos[0].photo}" alt=""><span><b>You wore this</b><br>${esc(fmtShort(photos[0].date))}${photos.length > 1 ? ` · ${photos.length} photos` : ''}</span></button>` : ''}</div>
+    ${facts.length ? `<div class="mm-status">${facts.join('')}</div>` : ''}
+    ${needs ? `<p class="note" style="margin-top:10px">This ${P.mode === 'dress' ? 'dress' : 'top'} needs a layer over it. <button class="link" data-act="pk-extra" data-slot="layer">Pick one</button></p>` : ''}
+    <div class="mm-actions"><button class="btn primary" data-act="pk-wear"${main.every(Boolean) ? '' : ' disabled'}>${label}</button></div>
+    ${t && b ? `<div class="pk-rate"><button class="btn small quiet" data-act="pk-goes" aria-pressed="${goes(t.id, b.id)}">${ICON.check}Goes together</button><button class="btn small quiet nope" data-act="pk-nope" aria-pressed="${isClash(t.id, b.id)}">${ICON.x}Doesn't go</button></div>` : ''}
+    ${hasDress ? `<div class="seg" role="radiogroup" aria-label="Outfit kind" style="margin-top:16px"><button role="radio" aria-checked="${P.mode === 'sep'}" data-act="pk-mode" data-k="sep">Top &amp; bottom</button><button role="radio" aria-checked="${P.mode === 'dress'}" data-act="pk-mode" data-k="dress">Dress</button></div>` : ''}
+    ${P.mode === 'dress' ? row('dress', 'Dresses', []) : row('top', 'Tops · freshest first', [P.bottom].filter(Boolean)) + row('bottom', 'Bottoms · freshest first', [P.top].filter(Boolean))}
+    ${chips ? `<div class="pk-chips">${chips}</div>` : ''}
+    ${P.open ? row(P.open, EXTRAS.find(e => e[0] === P.open)[1] === 'Shoes' ? 'Shoes' : TN[P.open], main.filter(Boolean)) : ''}`;
+}
+function todayPicker() {
+  if (!UI.pk || UI.pk.date !== UI.date || UI.pk.occ !== UI.occ) { UI.pk = newPicker(UI.date, UI.occ); UI.mmScroll = {}; }
+  return UI.pk;
+}
+function restoreScroll(root) { root.querySelectorAll('.mm-scroll').forEach(el => { const v = (UI.mmScroll || {})[el.dataset.key]; if (v) el.scrollLeft = v; }); }
+function renderPicker(where) {
+  const box = $(where === 'sheet' ? '#pkSheet' : '#pkToday'), P = where === 'sheet' ? SH && SH.pk : UI.pk;
+  if (!box || !P) return;
+  box.innerHTML = pickerHtml(P, where); restoreScroll(box); hydratePhotos(box);
+}
+function pickerAct(act, el) {
+  const host = el.closest('[data-pk]'), where = host ? host.dataset.pk : 'today';
+  const P = where === 'sheet' ? SH && SH.pk : UI.pk; if (!P) return;
+  const slot = el.dataset.slot;
+  if (act === 'pk-pick') { P[slot] = el.dataset.id || null; if (slot in P.auto) { P.auto[slot] = !P[slot]; fillPicker(P); } }
+  else if (act === 'pk-mode') { P.mode = el.dataset.k; fillPicker(P); }
+  else if (act === 'pk-extra') P.open = P.open === slot ? null : slot;
+  else if (act === 'pk-occ') { const keep = { layer: P.layer, shoes: P.shoes, bag: P.bag, mode: P.mode }; Object.assign(P, newPicker(P.date, el.dataset.k, null, P.logId), keep); fillPicker(P); UI.mmScroll = {}; }
+  else if (act === 'pk-goes' || act === 'pk-nope') {
+    const k = pk(P.top, P.bottom), yes = act === 'pk-goes', on = yes ? goes(P.top, P.bottom) : isClash(P.top, P.bottom);
+    commit(on ? 'Cleared' : yes ? 'Marked as going together' : "Got it. They won't be picked together.", () => {
+      delete D.liked[k]; delete D.clash[k];
+      if (!on) (yes ? D.liked : D.clash)[k] = { at: todayStr() };
+    }, { keepPick: true });
+    if (!yes && !on && (P.auto.top || P.auto.bottom)) { fillPicker(P); if (where === 'today') render(); }
+    if (where === 'sheet') renderPicker('sheet');
+    return;
+  }
+  else if (act === 'pk-wear') { pickerWear(P, where); return; }
+  renderPicker(where);
+}
+function pickerWear(P, where) {
+  const main = P.mode === 'dress' ? [P.dress] : [P.top, P.bottom];
+  if (!main.every(Boolean)) { toast(P.mode === 'dress' ? 'Pick a dress first.' : 'Pick a top and a bottom first.'); return; }
+  const ids = [...main, P.layer, P.shoes, P.bag].filter(Boolean), date = P.date, today = todayStr(), occ = P.occ === 'any' ? null : P.occ;
+  if (where === 'sheet') closeSheet();
+  commit(P.logId ? `Plan for ${fmtShort(date)} updated` : date === today ? 'Logged for today' : date > today ? `Planned for ${fmtShort(date)}` : `Logged for ${fmtShort(date)}`, () => {
+    if (P.logId) { const l = D.logs.find(x => x.id === P.logId); if (l) Object.assign(l, { items: ids, occ }); }
+    else D.logs.push({ id: uid(), date, items: ids, occ, src: date > today ? 'plan' : 'app', created: Date.now() });
+    if (where === 'sheet' && P.occ !== planOcc(date)) D.dayOcc[date] = P.occ;
+  });
+  if (where === 'today') window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+// Week: plan one day with the same picker
+function openPlanPicker(date, logId) {
+  const l = logId ? D.logs.find(x => x.id === logId) : null, po = planOcc(date);
+  const occ = l && l.occ && validOcc(l.occ) ? l.occ : po === 'skip' ? defaultOcc(date) : po;
+  SH = { kind: 'plan', pk: newPicker(date, occ, l ? l.items : null, logId) };
+  UI.mmScroll = {};
+  openSheet(`${l ? 'Change' : 'Plan'} ${fmt(date, { weekday: 'long', day: 'numeric', month: 'short' })}`, `<div id="pkSheet" data-pk="sheet">${pickerHtml(SH.pk, 'sheet')}</div>`);
+  hydratePhotos($('#pkSheet'));
 }
 
 /* ---------- rendering bits ---------- */
@@ -1150,7 +1236,7 @@ function metaLine(item, date) {
 function occList(item) { return item.occ.length ? item.occ.map(occName).filter(Boolean).join(' · ') : 'No occasion yet'; }
 
 function tabsHtml() {
-  const T = [['today', 'Today'], ['week', 'Week'], ['closet', 'Closet'], ['pairs', 'Pairs'], ['more', 'More']];
+  const T = [['today', 'Today'], ['week', 'Week'], ['closet', 'Closet'], ['more', 'More']];
   return T.map(([k, l]) => `<button data-act="tab" data-tab="${k}" ${UI.tab === k ? 'aria-current="page"' : ''}>${ICON[k]}<span>${l}</span></button>`).join('');
 }
 function render() {
@@ -1158,12 +1244,10 @@ function render() {
   const v = $('#view');
   if (UI.tab === 'closet') v.innerHTML = renderCloset();
   else if (UI.tab === 'week') v.innerHTML = renderWeek();
-  else if (UI.tab === 'pairs') v.innerHTML = renderPairs();
   else if (UI.tab === 'more') v.innerHTML = renderMore();
   else v.innerHTML = renderToday();
   saveUI();
-  hydratePhotos(v);
-  if (UI.tab === 'pairs') restoreMixScroll();
+  hydratePhotos(v); restoreScroll(v);
 }
 function sampleBanner() {
   if (!D.sample) return '';
@@ -1196,53 +1280,13 @@ function renderToday() {
       ${over.length ? `<span class="over">Past the laundry limit: ${over.map(i => esc(i.name)).join(', ')}</span>` : ''}
       <div class="worn-foot"><span class="occ-tag">${l.src === 'import' ? 'Imported' : esc(occName(l.occ) || 'No occasion')}</span><span class="btnrow">${!l.photo && date <= today ? `<button class="btn small quiet" data-act="photo-add" data-log="${l.id}">${ICON.camera}Add photo</button>` : ''}<button class="btn small quiet" data-act="log-edit" data-id="${l.id}">Edit</button></span></div></div>`; }).join('');
   }
-  const list = getSugg();
   const occLabel = UI.occ === 'any' ? 'any occasion' : occName(UI.occ);
-  h += `<div class="sec-head"><h2>Ideas for ${esc(occLabel)}</h2><button class="btn small quiet" data-act="shuffle">${ICON.shuffle}Shuffle</button></div>`;
-  if (!list.length) {
-    const dirty = D.items.filter(i => !i.out && eligible(i, UI.occ) && !st(i, date).clean).length;
-    h += `<div class="empty"><p>Nothing fits for ${esc(occLabel)} on this day.${dirty ? ` ${plural(dirty, 'piece is', 'pieces are')} in the laundry or saved for a planned day.` : ' Pieces may be set for other occasions or ruled out in Pairs.'}</p><div class="btnrow">${dirty ? '<button class="btn small primary" data-act="laundry-open">Laundry done</button>' : ''}<button class="btn small" data-act="tab" data-tab="closet">Open Closet</button></div></div>`;
-  } else {
-    const strictN = list.filter(c => isStrict(c.main, date)).length;
-    if (strictN < list.length) h += `<p class="note rest" style="margin-bottom:12px">${strictN ? `Only ${plural(strictN, 'idea')} with fully rested pieces.` : 'Everything here is still resting.'} The rest below are the freshest options left.</p>`;
-    h += `<div class="tags">${list.map((c, i) => tagCard(c, i, date)).join('')}</div>`;
-  }
-  h += `<div class="btnrow" style="margin-top:16px;flex-wrap:nowrap"><button class="btn" style="flex:1" data-act="tab" data-tab="pairs">Mix &amp; match</button><button class="btn" style="flex:1" data-act="log-new">Log a different outfit</button></div>`;
+  h += `<div class="sec-head"><h2>${logs.length ? 'Pick another' : isToday ? 'Freshest' : 'Pick'} for ${esc(occLabel)}</h2><button class="btn small quiet" data-act="log-new">Log something else</button></div>`;
+  h += `<section id="pkToday" data-pk="today">${pickerHtml(todayPicker(), 'today')}</section>`;
   const untagged = D.items.filter(i => !i.out && !i.occ.length).length;
   if (untagged) h += `<p class="note" style="margin-top:14px">${plural(untagged, 'piece has', 'pieces have')} no occasion ticked, so ${untagged === 1 ? 'it only shows' : 'they only show'} up under Any. <button class="link" data-act="closet-untagged">Tag them</button></p>`;
   return h;
 }
-function tagCard(c, i, date) {
-  const its = c.main.map(id => IX.byId.get(id));
-  const k = mainKey(c.main);
-  const liked = !!(k && D.liked[k]);
-  const facts = [];
-  if (liked) facts.push('<span class="liked">♥ Goes together</span>');
-  if (its.length === 2) {
-    const cs = comboSt(k, date);
-    facts.push(cs.next && cs.daysNext < D.rest.combo ? `<span class="warn">Planned ${fmtDM(cs.next)}</span>` : cs.last ? `<span class="${cs.days < D.rest.combo ? 'warn' : ''}">Together ${fmtDM(cs.last)}</span>` : '<span class="fresh">New pairing</span>');
-  } else facts.push('<span>One-piece</span>');
-  const photos = comboPhotos(k).filter(l => l.date <= todayStr());
-  const photoHtml = photos.length ? `<button class="ootd" data-act="photo-view" data-key="${k}"><img data-photo="${photos[0].photo}" alt=""><span><b>You wore this</b><br>${esc(fmtShort(photos[0].date))}${photos.length > 1 ? ` · ${photos.length} photos` : ''}</span></button>` : '';
-  const wearLabel = date === todayStr() ? 'Wear this' : date > todayStr() ? 'Plan this' : 'Log this';
-  const rows = its.map(p => pieceRow(p, i, p.type, date, false)).join('');
-  // layer, shoes and bag: shown when on, or offered with Add
-  const extras = SLOTS.map(t => { const p = c[t] ? IX.byId.get(c[t]) : null; if (!p) return '';
-    return c[t + 'On'] ? pieceRow(p, i, t, date, true) : `<button class="add-layer" data-act="slot-on" data-i="${i}" data-slot="${t}">${sw(p, true)}<span><b>Add</b> ${esc(p.name)}</span></button>`; }).join('');
-  return `<article class="tag" aria-label="Idea ${i + 1}">
-    <div class="tag-head"><span class="hole"></span><span>No. ${i + 1}</span><span class="tag-facts">${facts.join('')}</span></div>
-    <div class="tag-body"><div class="tag-board">${board(ideaIds(c))}</div><div class="pieces">${rows}${extras}</div></div>${photoHtml}
-    <div class="tag-actions"><button class="btn primary" data-act="wear" data-i="${i}">${wearLabel}</button>
-      <button class="btn quiet" data-act="nope" data-i="${i}">Doesn't work</button>
-      <button class="icon-btn heart" data-act="like" data-i="${i}" aria-pressed="${liked}" aria-label="Goes together">${ICON.heart}</button></div>
-  </article>`;
-}
-function pieceRow(p, i, slot, date, removable) {
-  return `<div class="piece">${sw(p)}<div><div class="pc-name">${esc(p.name)}</div><div class="pc-meta">${metaLine(p, date)}</div></div>
-    <div class="pc-btns">${removable ? `<button class="icon-btn" data-act="slot-off" data-i="${i}" data-slot="${slot}" aria-label="Remove ${T1[slot].toLowerCase()}">${ICON.x}</button>` : ''}
-    <button class="icon-btn" data-act="swap" data-i="${i}" data-slot="${slot}" aria-label="Swap ${T1[slot].toLowerCase()}">${ICON.swap}</button></div></div>`;
-}
-
 /* Closet */
 function renderCloset() {
   const date = UI.date;
@@ -1297,7 +1341,7 @@ function renderWeek() {
   h += `<div class="card" style="margin-top:12px"><div class="set-row"><div><b>Laundry</b><div class="small muted">${dirty ? `${plural(dirty, 'piece')} waiting to be washed` : 'Everything is clean'}${partly ? ` · ${plural(partly, 'piece')} partly worn` : ''}</div></div><button class="btn small ${dirty ? 'primary' : ''}" data-act="laundry-open">Laundry done</button></div></div>`;
   h += `<div class="sec-head"><h2>Coming up</h2>${empty ? `<button class="btn small primary" data-act="plan-fill">Plan ${plural(empty, 'empty day')}</button>` : ''}</div>`;
   h += `<div class="list">${days.map(planRow).join('')}</div>`;
-  h += `<p class="help">Planned outfits count as worn on their day. Suggestions for other days keep those pieces rested and clean in time. Tap an occasion to change it, or set a day to <b>No plan</b>.</p>`;
+  h += `<p class="help">Planned outfits count as worn on their day, so the picker keeps those pieces fresh and clean for it. Tap an occasion to change it, or set a day to <b>No plan</b>.</p>`;
   h += `<div style="margin-top:8px"><button class="btn small" data-act="plan-more">Show 7 more days</button></div>`;
   h += `<div class="sec-head"><h2>Worn</h2></div>`;
   h += historyList(D.logs.filter(l => l.date < today));
@@ -1309,7 +1353,7 @@ function planRow(d) {
   let body;
   if (logs.length) body = logs.map(l => {
     const over = overLimit(l), ph = l.photo ? l : comboPhotos(mainKey(l.items), l.id).find(x => x.date <= today);
-    return `<button class="pentry" data-act="log-edit" data-id="${l.id}"><span><span class="chips-inline">${piecesOf(l.items).map(i => `<span class="chip-piece">${sw(i, true)}<span>${esc(i.name)}</span></span>`).join('')}</span>
+    return `<button class="pentry" data-act="${d > today ? 'plan-edit' : 'log-edit'}" data-id="${l.id}"><span><span class="chips-inline">${piecesOf(l.items).map(i => `<span class="chip-piece">${sw(i, true)}<span>${esc(i.name)}</span></span>`).join('')}</span>
       ${over.length ? `<span class="over">Past the laundry limit: ${over.map(i => esc(i.name)).join(', ')}</span>` : ''}</span>${ph ? `<img class="thumb sm" data-photo="${ph.photo}" alt="">` : ''}</button>`;
   }).join('');
   else body = occ === 'skip' ? '<span class="small muted">Nothing to plan</span>' : `<button class="link" data-act="plan-pick" data-d="${d}">Pick an outfit</button>`;
@@ -1318,7 +1362,7 @@ function planRow(d) {
 }
 function historyList(logs) {
   logs = [...logs].sort((a, b) => b.date.localeCompare(a.date));
-  if (!logs.length) return `<div class="empty"><p>Nothing logged yet. Tap <b>Wear this</b> on a suggestion, or log what you actually wore.</p></div>`;
+  if (!logs.length) return `<div class="empty"><p>Nothing logged yet. Tap <b>Wear this</b> on Today, or log what you actually wore.</p></div>`;
   let h = '';
   const byMonth = new Map();
   for (const l of logs) { const m = l.date.slice(0, 7); if (!byMonth.has(m)) byMonth.set(m, new Map()); const days = byMonth.get(m); if (!days.has(l.date)) days.set(l.date, []); days.get(l.date).push(l); }
@@ -1338,14 +1382,15 @@ function historyList(logs) {
 }
 function planFill() {
   const today = todayStr(); let made = 0;
-  commit(() => (made ? `Planned ${plural(made, 'day')}` : 'Nothing fits. Check the laundry.'), () => {
+  commit(() => (made ? `Planned ${plural(made, 'day')}` : 'Nothing clean to plan with. Check the laundry.'), () => {
     for (let n = 1; n < UI.weekDays; n++) {
       const d = addDays(today, n), occ = planOcc(d);
       if (occ === 'skip' || D.logs.some(l => l.date === d)) continue;
       reindex(); // so each new plan counts for the next day
-      const list = suggest(d, occ, `plan|${d}|${UI.shuffle}`);
-      const c = list.find(x => isStrict(x.main, d)) || list[0]; if (!c) continue;
-      D.logs.push({ id: uid(), date: d, items: ideaIds(c), occ: occ === 'any' ? null : occ, src: 'plan', created: Date.now() + n });
+      const P = newPicker(d, occ), ids = [P.top, P.bottom].filter(Boolean);
+      if (ids.length < 2 || !ids.every(id => st(IX.byId.get(id), d).clean)) continue;
+      if (ids.some(id => IX.byId.get(id).needsLayer)) { const l = freshExtra('layer', ids, d, occ); if (l) ids.push(l); }
+      D.logs.push({ id: uid(), date: d, items: ids, occ: occ === 'any' ? null : occ, src: 'plan', created: Date.now() + n });
       made++;
     }
   });
@@ -1387,9 +1432,9 @@ function welcomeSteps() {
     icon: APP_SVG, app: true,
     title: 'Your closet, in rotation. Without the guesswork.',
     body: `<ul class="wl-pp">
-        <li><s>Wearing the same thing again without noticing</s><b>${TICK}Every piece rests after you wear it, and the same top and bottom don't pair up again too soon</b></li>
+        <li><s>Wearing the same thing again without noticing</s><b>${TICK}Every piece rests after you wear it, and the freshest tops and bottoms come first</b></li>
         <li><s>Running out of clean clothes midweek</s><b>${TICK}Tracks your laundry and plans the week, so what you need is clean on the day</b></li>
-        <li><s>Standing at the closet, not sure what to wear</s><b>${TICK}Five ready-to-wear ideas for today, matched to where you're going</b></li>
+        <li><s>Standing at the closet, not sure what to wear</s><b>${TICK}Your freshest top and bottom already picked, shown together, with your photo from last time</b></li>
       </ul><p class="wl-c">Private by design. Your closet and photos stay on this phone. No sign-up, no ads.</p>`
   }, {
     icon: WL_ICON.repeat,
@@ -1399,7 +1444,7 @@ function welcomeSteps() {
         ${mrow('grey', 'Charcoal pencil skirt', 'Worn yesterday', '<span class="pill rest">1d left</span>')}
         ${mrow('orange', 'Rust silk shirt', 'Worn today', '<span class="pill wash">Laundry</span>')}</div>
       <p>After you wear something it rests for a while: two weeks for tops, a couple of days for bottoms. You set the numbers.</p>
-      <p>The exact same top and bottom also rest as a pair for a month, even when both are free again. Add an OOTD photo and it shows up the next time that outfit is suggested.</p>`
+      <p>Add an OOTD photo when you log an outfit. It shows up whenever you pick that top and bottom again.</p>`
   }, {
     icon: WL_ICON.wash,
     title: 'Never run out of clean clothes',
@@ -1407,21 +1452,21 @@ function welcomeSteps() {
         <div class="wm-r"><span class="wm-d">Sun</span><span><b>Rust silk shirt + Olive midi skirt</b><small>${onDay(0)}</small></span></div>
         <div class="wm-r"><span class="wm-d">Mon</span><span><b>Sky blue poplin shirt + Black tailored trousers</b><small>${onDay(1)}</small></span></div>
         <div class="wm-r"><span class="wm-d">Tue</span><span><b>Mustard knit top + Charcoal pencil skirt</b><small>${onDay(2)}</small></span></div></div>
-      <p>A top goes to the laundry after one wear, a bottom after three. Anything in the wash stays out of your ideas until you tap <b>Laundry done</b>.</p>
+      <p>A top goes to the laundry after one wear, a bottom after three. Anything in the wash moves to the back until you tap <b>Laundry done</b>.</p>
       <p>Plan the week ahead. Set Sunday first and the other days are picked around it, so the skirt you need isn't worn out by Wednesday.</p>`
   }, {
     icon: ICON.today,
     title: 'Decide in seconds',
-    body: `<div class="wl-mock"><div class="tag-head"><span class="hole"></span><span>No. 1</span><span class="tag-facts"><span class="fresh">New pairing</span></span></div>
-        ${mrow('green', 'Olive linen shirt', 'Top · worn 3 weeks ago')}
-        ${mrow('cream', 'Khaki wide-leg trousers', 'Bottom · wear 2 of 3')}
-        <div class="wm-act"><span class="btn small primary">Wear this</span><span class="btn small quiet">Doesn't work</span></div></div>
+    body: `<div class="wl-mock"><div class="wm-h"><span>Freshest for today</span><span>New pairing</span></div>
+        ${mrow('green', 'Olive linen shirt', 'Top · worn 3 weeks ago', '<span class="pill ready">21d</span>')}
+        ${mrow('cream', 'Khaki wide-leg trousers', 'Bottom · wear 2 of 3', '<span class="pill ready">9d</span>')}
+        <div class="wm-act"><span class="btn small primary">Wear this</span><span class="btn small quiet">+ Shoes</span><span class="btn small quiet">+ Bag</span></div></div>
       <ul class="wl-ticks">
-        <li>${TICK}<span><b>Ideas match the day.</b> ${withDays.length ? withDays.map(o => `${esc(o.name)} on ${daysPhrase(o.days)}`).join(', ') + '.' : 'Pick the occasion and the ideas follow.'}</span></li>
-        <li>${TICK}<span>Swap any piece with one tap. Add your shoes and bags and each idea comes with a pair and a bag to match.</span></li>
-        <li>${TICK}<span>Tap <b>Doesn't work</b> and those pieces are never paired again.</span></li>
-        <li>${TICK}<span>Copy each piece straight from <b>Photos</b> and it lands without the background, so you can <b>mix &amp; match</b> whole outfits before you put them on.</span></li>
-        <li>${TICK}<span>Tick which bottoms go with each top in <b>Pairs</b>.</span></li></ul>`
+        <li>${TICK}<span><b>Picks match the day.</b> ${withDays.length ? withDays.map(o => `${esc(o.name)} on ${daysPhrase(o.days)}`).join(', ') + '.' : 'Pick the occasion and the pieces follow.'}</span></li>
+        <li>${TICK}<span>Tops and bottoms are sorted freshest first. Tap any other one to switch.</span></li>
+        <li>${TICK}<span>Add shoes, a bag or a layer if you like. Nothing is added for you.</span></li>
+        <li>${TICK}<span>Copy each piece straight from <b>Photos</b> and it lands without the background, so you see the outfit before you put it on.</span></li>
+        <li>${TICK}<span>Tap <b>Doesn't go</b> on a top and bottom and they're never picked together.</span></li></ul>`
   }];
   if (INSTALLED && isIOS() && !isStandalone()) steps.push({
     icon: WL_ICON.share,
@@ -1440,7 +1485,7 @@ function welcomeSteps() {
   } : {
     final: 'done', icon: ICON.today,
     title: "You're all set",
-    body: `<ul class="wl-ticks"><li>${TICK}<span><b>Today</b> has ideas for the day.</span></li><li>${TICK}<span><b>Week</b> plans ahead and keeps the laundry in check.</span></li><li>${TICK}<span><b>Pairs</b> is where you say what goes together.</span></li></ul>`
+    body: `<ul class="wl-ticks"><li>${TICK}<span><b>Today</b> picks your freshest top and bottom.</span></li><li>${TICK}<span><b>Week</b> plans ahead with the same picker and keeps the laundry in check.</span></li><li>${TICK}<span><b>Closet</b> has every piece, its history and its photos.</span></li></ul>`
   });
   return steps;
 }
@@ -1463,41 +1508,12 @@ function openWelcome(step) {
   $('#sheetBody').scrollTop = 0;
 }
 
-/* Pairs */
+/* pair rules, set from a piece's page */
 function matchList(it, v) {
   const other = it.type === 'top' ? 'bottom' : 'top';
   const src = v === 'yes' ? D.liked : D.clash;
   return Object.keys(src).filter(k => k.split('|').includes(it.id)).map(k => IX.byId.get(k.split('|').find(x => x !== it.id))).filter(o => o && o.type === other);
 }
-function renderPairs() {
-  const tops = D.items.filter(i => i.type === 'top' && !i.out), bottoms = D.items.filter(i => i.type === 'bottom' && !i.out);
-  const matched = arr => arr.filter(i => IX.ticks.get(i.id)).length;
-  const line = i => `<span class="chip-piece">${sw(i)}<span>${esc(i.name)}</span></span>`;
-  const mini = i => `<span class="chip-piece">${sw(i, true)}<span>${esc(i.name)}</span></span>`;
-  let h = `<div class="page-head"><div><h1>Pairs</h1><p class="sub">See what goes together, and mark it. Ideas follow these.</p></div></div>`;
-  h += `<section id="mmBox">${mixHtml()}</section><div class="sec-head" style="margin-top:26px"><h2>Match by list</h2></div>`;
-  h += `<div class="card" style="margin-top:12px">
-    <div class="set-row"><div><b>Tops</b><div class="small muted num">${matched(tops)} of ${tops.length} have bottoms ticked</div></div><button class="btn small primary" data-act="match-start" data-t="top">Match tops</button></div>
-    <div class="set-row"><div><b>Bottoms</b><div class="small muted num">${matched(bottoms)} of ${bottoms.length} have tops ticked</div></div><button class="btn small" data-act="match-start" data-t="bottom">Match bottoms</button></div></div>
-    <p class="help">Go through them one by one. Tick what goes, cross out what doesn't. A piece set to <b>only these</b> is never paired with anything you didn't tick.</p>`;
-  const rows = D.items.filter(i => i.type === 'top').map(t => [t, matchList(t, 'yes'), matchList(t, 'no')]).filter(r => r[1].length || r[2].length);
-  h += `<div class="sec-head"><h2>By top</h2></div>`;
-  h += rows.length ? `<div class="list">${rows.map(([t, yes, no]) => `<button class="ptop" data-act="match-open" data-id="${t.id}">${sw(t)}<span><span class="row-name">${esc(t.name)}</span>
-      ${yes.length ? `<span class="goes-list">${yes.map(mini).join('')}</span>` : ''}
-      ${no.length ? `<span class="nogo">Not with ${no.map(o => esc(o.name)).join(', ')}</span>` : ''}</span>
-      <span class="row-side">${limited(t) ? '<span class="pill ready">Only these</span>' : yes.length ? '<span class="pill new">Preferred</span>' : ''}<span class="row-when num">${yes.length}✓ ${no.length}✗</span></span></button>`).join('')}</div>`
-    : `<div class="empty"><p>Nothing matched yet. Tap <b>Match tops</b> to go through your tops one at a time and tick the bottoms that go with each.</p></div>`;
-  const isTB = k => { const [a, b] = k.split('|').map(id => IX.byId.get(id)); return a && b && ((a.type === 'top' && b.type === 'bottom') || (a.type === 'bottom' && b.type === 'top')); };
-  const other = [
-    ...Object.entries(D.liked).filter(([k]) => !isTB(k)).map(([k, v]) => ['like', k, v]),
-    ...Object.entries(D.clash).filter(([k]) => !isTB(k)).map(([k, v]) => ['clash', k, v])
-  ].map(([t, k, v]) => [t, k, v, k.split('|').map(id => IX.byId.get(id))]).filter(x => x[3].every(Boolean));
-  h += `<div class="sec-head"><h2>Other pairings</h2><button class="btn small quiet" data-act="pair-new">Add</button></div>`;
-  h += other.length ? `<div class="list">${other.map(([t, k, v, its]) => { const l = t === 'like' && v.layer && IX.byId.get(v.layer); return `<div class="pair"><div class="pair-items"><span class="occ-tag" style="color:${t === 'like' ? 'var(--ready)' : 'var(--clash)'}">${t === 'like' ? '♥ Goes together' : "Doesn't work"}</span>${its.map(line).join('<span class="plus">with</span>')}${l ? `<span class="plus">and</span>${line(l)}` : ''}</div><button class="icon-btn" data-act="${t === 'like' ? 'like-del' : 'clash-del'}" data-k="${k}" aria-label="Remove">${ICON.x}</button></div>`; }).join('')}</div>`
-    : `<div class="empty"><p>Rules for dresses, layers, shoes and bags show up here, from the heart and <b>Doesn't work</b> on the Today ideas.</p></div>`;
-  return h;
-}
-
 /* match sheet: tick which bottoms go with a top, or which tops go with a bottom */
 function openMatch(id, queue) {
   const it = IX.byId.get(id); if (!it || (it.type !== 'top' && it.type !== 'bottom')) return;
@@ -1543,14 +1559,14 @@ function saveMatch(msg) {
 
 /* More */
 function renderMore() {
-  const rows = [['top', 'Tops'], ['bottom', 'Bottoms'], ['dress', 'Dresses'], ['layer', 'Layers'], ['shoes', 'Shoes'], ['bag', 'Bags'], ['combo', 'Same top and bottom together']];
+  const rows = [['top', 'Tops'], ['bottom', 'Bottoms'], ['dress', 'Dresses'], ['layer', 'Layers'], ['shoes', 'Shoes'], ['bag', 'Bags']];
   return `<div class="page-head"><div><h1>More</h1><p class="sub">Rest days, occasions and your data.</p></div></div>
   <div class="sec-head"><h2>Rest days</h2></div>
   <div class="card">${rows.map(([k, l]) => `<div class="set-row"><div>${l}</div><div class="stepper"><button data-act="rest" data-k="${k}" data-d="-1" aria-label="Fewer days">−</button><output class="num">${plural(D.rest[k], 'day')}</output><button data-act="rest" data-k="${k}" data-d="1" aria-label="More days">+</button></div></div>`).join('')}</div>
-  <p class="help">A piece comes back into the ideas once it has rested this long, before and after any day it's planned for. Shoes and bags are still picked when every one is resting, just the most rested first. The last row stops the exact same top and bottom from being paired again too soon.</p>
+  <p class="help">A piece is back at the front of the picker once it has rested this long, before and after any day it's planned for. Resting pieces still show in the picker, dimmed and after the rested ones.</p>
   <div class="sec-head"><h2>Wears before washing</h2></div>
   <div class="card">${[['top', 'Tops'], ['bottom', 'Bottoms'], ['dress', 'Dresses'], ['layer', 'Layers']].map(([k, l]) => `<div class="set-row"><div>${l}</div><div class="stepper"><button data-act="washlim" data-k="${k}" data-d="-1" aria-label="Fewer wears">−</button><output class="num">${plural(D.wash[k], 'wear')}</output><button data-act="washlim" data-k="${k}" data-d="1" aria-label="More wears">+</button></div></div>`).join('')}</div>
-  <p class="help">After this many wears a piece goes to the laundry and isn't suggested until you tap <b>Laundry done</b> in Week. Shoes and bags never go to the laundry.</p>
+  <p class="help">After this many wears a piece goes to the laundry and sits at the end of the picker until you tap <b>Laundry done</b> in Week. Shoes and bags never go to the laundry.</p>
   <div class="sec-head"><h2>Occasions</h2><button class="btn small quiet" data-act="occ-add">Add</button></div>
   <div class="card">${D.occasions.map(o => `<div class="occ-row"><div class="occ-top"><input type="text" id="occ_${o.id}" data-occ="${o.id}" value="${esc(o.name)}" aria-label="Occasion name">${D.occasions.length > 1 ? `<button class="icon-btn" data-act="occ-del" data-id="${o.id}" aria-label="Remove ${esc(o.name)}">${ICON.x}</button>` : ''}</div>
     <div class="daychips" role="group" aria-label="Days for ${esc(o.name)}">${DOW_ORDER.map(k => `<button class="daychip" data-act="occ-day" data-id="${o.id}" data-d="${k}" aria-pressed="${(o.days || []).includes(k)}" aria-label="${DOW_LONG[k]}">${DOW_LETTER[k]}</button>`).join('')}</div></div>`).join('')}</div>
@@ -1592,10 +1608,10 @@ function openItem(id, draft) {
       <p class="small muted">No good photo yet? <b>Take or choose a photo</b> removes the background here instead.</p></details>
     <div class="field"><label class="lab" for="itName">Name</label><input type="text" id="itName" value="${esc(it.name)}" autocomplete="off" placeholder="e.g. Olive linen shirt"></div>
     <div class="field"><span class="lab">Type</span><div class="seg grid3" role="radiogroup" id="itType">${TYPES.map(t => `<button role="radio" aria-checked="${it.type === t[0]}" data-act="it-type" data-k="${t[0]}">${t[1]}</button>`).join('')}</div></div>
-    <div class="field"><span class="lab">Occasions</span><div class="chips wrap" id="itOcc">${D.occasions.map(o => `<button class="chip" aria-pressed="${it.occ.includes(o.id)}" data-act="it-occ" data-k="${o.id}">${esc(o.name)}</button>`).join('')}</div><span class="small muted">With none ticked, it's only suggested under Any.</span></div>
+    <div class="field"><span class="lab">Occasions</span><div class="chips wrap" id="itOcc">${D.occasions.map(o => `<button class="chip" aria-pressed="${it.occ.includes(o.id)}" data-act="it-occ" data-k="${o.id}">${esc(o.name)}</button>`).join('')}</div><span class="small muted">With none ticked, it's only shown under Any.</span></div>
     <div class="field"><span class="lab">Colour</span><div class="swatches" id="itColor">${Object.keys(COLORS).map(k => `<button class="swb" aria-pressed="${it.color === k}" data-act="it-color" data-k="${k}">${swHtml(k)}<span>${COLORS[k][0]}</span></button>`).join('')}</div></div>
-    <div class="field"><label class="check" id="itLayerRow"${isAcc(it.type) ? ' hidden' : ''}><input type="checkbox" id="itLayer" ${it.needsLayer ? 'checked' : ''}><span>Needs a layer over it<small>Ideas with this piece come with a cardigan or outer already added</small></span></label>
-    <label class="check"><input type="checkbox" id="itOut" ${it.out ? 'checked' : ''}><span>Out of rotation<small>Kept in your closet but never suggested</small></span></label></div>`;
+    <div class="field"><label class="check" id="itLayerRow"${isAcc(it.type) ? ' hidden' : ''}><input type="checkbox" id="itLayer" ${it.needsLayer ? 'checked' : ''}><span>Needs a layer over it<small>The picker reminds you to add a cardigan or outer</small></span></label>
+    <label class="check"><input type="checkbox" id="itOut" ${it.out ? 'checked' : ''}><span>Out of rotation<small>Kept in your closet but left out of the picker</small></span></label></div>`;
   if (id) {
     const s = st(it, todayStr());
     const dates = (IX.worn.get(id) || []).slice(0, 12);
@@ -1771,62 +1787,14 @@ async function saveCut() {
   try { await photoPut(id, blob); } catch (e) { toast("Photos can't be saved in this browser."); return false; }
   closeSheet();
   if (back.run) {
-    commit(null, () => { const it = D.items.find(x => x.id === back.id); if (it) it.pic = id; }, { keepSugg: true });
+    commit(null, () => { const it = D.items.find(x => x.id === back.id); if (it) it.pic = id; }, { keepPick: true });
     openPhotoRun(back.run.queue, back.run.idx + 1, `Saved the photo for ${(IX.byId.get(back.id) || {}).name || 'that piece'}`);
     return true;
   }
-  if (back.id) { commit('Photo saved', () => { const it = D.items.find(x => x.id === back.id); if (it) it.pic = id; }, { keepSugg: true }); openItem(back.id, Object.assign({}, back.draft, { pic: id })); }
+  if (back.id) { commit('Photo saved', () => { const it = D.items.find(x => x.id === back.id); if (it) it.pic = id; }, { keepPick: true }); openItem(back.id, Object.assign({}, back.draft, { pic: id })); }
   else openItem(null, Object.assign({}, back.draft, { pic: id }));
   return true;
 }
-
-/* mix & match: try tops, bottoms, dresses and layers together */
-function mixState() {
-  const M = UI.mm || (UI.mm = { mode: 'sep', occ: 'any', top: null, bottom: null, dress: null, layer: null, shoes: null, bag: null });
-  if (M.occ !== 'any' && !validOcc(M.occ)) M.occ = 'any';
-  const pool = t => D.items.filter(i => i.type === t && !i.out && (M.occ === 'any' || i.occ.includes(M.occ)));
-  for (const t of ['top', 'bottom', 'dress']) if (!M[t] || !pool(t).some(i => i.id === M[t])) M[t] = (pool(t).find(i => st(i, todayStr()).clean) || pool(t)[0] || {}).id || null;
-  for (const t of SLOTS) if (M[t] && !IX.byId.get(M[t])) M[t] = null;
-  return { M, pool };
-}
-function mixHtml() {
-  const { M, pool } = mixState(), today = todayStr();
-  const main = M.mode === 'dress' ? [M.dress] : [M.top, M.bottom];
-  const sel = [...main, M.layer, M.shoes, M.bag].filter(Boolean);
-  const pills = [];
-  if (M.mode === 'sep' && M.top && M.bottom) {
-    const k = pk(M.top, M.bottom), cs = comboSt(k, today);
-    pills.push(isClash(M.top, M.bottom) ? `<span class="pill rest" style="background:var(--clash-soft);color:var(--clash)">Doesn't work</span>` : goes(M.top, M.bottom) ? '<span class="pill ready">✓ Goes together</span>' : '<span class="pill new">Not rated yet</span>');
-    if (cs.last) pills.push(`<span class="pill off">Worn together ${esc(fmtDM(cs.last))}</span>`);
-  }
-  for (const t of ACC) { const bad = M[t] && main.find(m => m && isClash(m, M[t])); if (bad) pills.push(`<span class="pill rest" style="background:var(--clash-soft);color:var(--clash)">${esc(IX.byId.get(M[t]).name)} doesn't go with ${esc(IX.byId.get(bad).name)}</span>`); }
-  for (const id of sel) { const it = IX.byId.get(id), s = st(it, today); if (!s.clean) pills.push(`<span class="pill wash">${esc(it.name)} in the laundry</span>`); else if (!s.ready && s.days !== null && s.days < s.rest) pills.push(`<span class="pill rest">${esc(it.name)} rests ${s.left}d</span>`); }
-  // what a row is checked against: the other half of the outfit, or for shoes and bags the whole outfit
-  const partners = slot => (slot === 'top' ? [M.bottom] : slot === 'bottom' ? [M.top] : isAcc(slot) ? main : []).filter(Boolean);
-  const row = (slot, label) => {
-    let its = pool(slot); const ps = partners(slot);
-    const yesOf = i => ps.some(p => goes(i.id, p)), noOf = i => ps.some(p => isClash(i.id, p));
-    const rank = i => (yesOf(i) ? 0 : noOf(i) ? 2 : 1) + (st(i, today).clean ? 0 : 3);
-    its = its.slice().sort((a, b) => rank(a) - rank(b));
-    const th = i => { const yes = yesOf(i), no = noOf(i), dirty = !st(i, today).clean;
-      return `<button class="mm-th${no || dirty ? ' dim' : ''}" data-act="mm-pick" data-slot="${slot}" data-id="${i.id}" aria-pressed="${M[slot] === i.id}" aria-label="${esc(i.name)}"><span class="art">${pieceArt(i)}</span>${yes ? '<span class="mm-badge yes">✓</span>' : no ? '<span class="mm-badge no">✗</span>' : dirty ? '<span class="mm-badge wash">wash</span>' : ''}<span class="mm-name">${esc(i.name)}</span></button>`; };
-    const none = SLOTS.includes(slot) ? `<button class="mm-th" data-act="mm-pick" data-slot="${slot}" data-id="" aria-pressed="${!M[slot]}"><span class="art"><span class="none">None</span></span><span class="mm-name">No ${slot === 'shoes' ? 'shoes' : T1[slot].toLowerCase()}</span></button>` : '';
-    return `<div class="mm-row"><span class="lab">${label} · ${its.length}</span><div class="mm-scroll" data-slot="${slot}">${none}${its.map(th).join('') || '<span class="small muted" style="padding:20px 4px">Nothing here for this occasion.</span>'}</div></div>`;
-  };
-  return `<div class="sec-head" style="margin-top:14px"><h2>Mix &amp; match</h2><button class="btn small quiet" data-act="mm-shuffle">${ICON.shuffle}Shuffle</button></div>
-    <div class="chips" role="radiogroup" aria-label="Occasion">${[{ id: 'any', name: 'Any occasion' }, ...D.occasions].map(o => `<button class="chip" role="radio" aria-checked="${M.occ === o.id}" data-act="mm-occ" data-k="${o.id}">${esc(o.name)}</button>`).join('')}</div>
-    <div class="mm-stage" style="margin-top:10px">${board(sel, 'big')}
-      <div class="seg" role="radiogroup" aria-label="Outfit kind"><button role="radio" aria-checked="${M.mode === 'sep'}" data-act="mm-mode" data-k="sep">Top &amp; bottom</button><button role="radio" aria-checked="${M.mode === 'dress'}" data-act="mm-mode" data-k="dress">Dress</button></div></div>
-    <div class="mm-status">${pills.join('')}</div>
-    ${M.mode === 'dress' ? row('dress', 'Dresses') : row('top', 'Tops') + row('bottom', 'Bottoms')}${row('layer', 'Layers')}${ACC.filter(t => D.items.some(x => x.type === t && !x.out)).map(t => row(t, TN[t])).join('')}
-    <div class="mm-actions">${M.mode === 'sep' && M.top && M.bottom ? `<button class="btn${goes(M.top, M.bottom) ? ' primary' : ''}" data-act="mm-goes">${ICON.check}Goes together</button><button class="btn${isClash(M.top, M.bottom) ? ' danger' : ''}" data-act="mm-nope">${ICON.x}Doesn't work</button>` : ''}<button class="btn" data-act="mm-wear"${sel.length ? '' : ' disabled'}>Wear or plan</button></div>
-    <p class="help">Pieces without a photo show as a shape in their colour.${photoQueue().length ? ' <button class="link" data-act="photo-run">Add photos</button>' : ''}</p>`;
-}
-function renderMix() {
-  const box = $('#mmBox'); if (!box) return;
-  box.innerHTML = mixHtml(); restoreMixScroll(); hydratePhotos(box);
-}
-function restoreMixScroll() { document.querySelectorAll('.mm-scroll').forEach(el => { const v = (UI.mmScroll || {})[el.dataset.slot]; if (v) el.scrollLeft = v; }); }
 
 /* builder sheet */
 function openBuilder(logId, preset) {
@@ -1852,7 +1820,6 @@ function refreshBuilder() {
   { const t = sel.find(i => i.type === 'top'), b = sel.find(i => i.type === 'bottom');
     if (t && b && !isClash(t.id, b.id) && !goes(t.id, b.id)) { if (limited(t)) w.push(`<p>${esc(b.name)} isn't one of the bottoms you ticked for ${esc(t.name)}.</p>`); else if (limited(b)) w.push(`<p>${esc(t.name)} isn't one of the tops you ticked for ${esc(b.name)}.</p>`); } }
   const k = mainKey(SH.sel);
-  if (k && k.includes('|')) { const c = comboSt(k, SH.date, SH.id); if (c.last && c.days < D.rest.combo) w.push(`<p>You wore this exact pairing on ${fmtShort(c.last)}.</p>`); }
   for (const i of sel) { const s = st(i, SH.date, SH.id); if (!s.clean) w.push(`<p class="bad">${esc(i.name)} would be wear ${s.wears + 1} before washing. Its limit is ${s.limit}.</p>`); }
   $('#bWarn').innerHTML = w.join('');
   refreshBuilderPhoto();
@@ -1893,48 +1860,6 @@ function saveBuilder() {
     if (id) { const l = D.logs.find(x => x.id === id); Object.assign(l, { date, occ: occ || null, items: sel, photo: photo || null }); if (l.src === 'import' && sel.length > 1) l.src = 'app'; if (l.src === 'plan' && photo) l.src = 'app'; }
     else D.logs.push({ id: uid(), date, occ: occ || null, items: sel, src: date > todayStr() ? 'plan' : 'app', created: Date.now(), photo: photo || null });
   });
-}
-
-/* doesn't-work sheet */
-function openNope(i) {
-  const c = UI.sugg.list[i]; if (!c) return;
-  const ids = ideaIds(c);
-  const its = ids.map(x => IX.byId.get(x));
-  const pairs = [];
-  for (let a = 0; a < its.length; a++) for (let b = a + 1; b < its.length; b++) pairs.push([its[a], its[b]]);
-  SH = { kind: 'nope', i, ids, key: mainKey(c.main) };
-  let b = pairs.length ? `<p class="lede">Tick what doesn't go together. They won't be suggested together again, and you can undo it in Pairs.</p><div class="field">${pairs.map(([x, y], n) => `<label class="check"><input type="checkbox" name="np" value="${pk(x.id, y.id)}" ${n === 0 ? 'checked' : ''}><span class="pair-items"><span class="chip-piece">${sw(x, true)}<span>${esc(x.name)}</span></span><span class="chip-piece">${sw(y, true)}<span>${esc(y.name)}</span></span></span></label>`).join('')}</div>` : '';
-  if (UI.occ !== 'any') b += `<p class="lede" style="margin-top:18px">${pairs.length ? 'Or is a piece just wrong' : 'Is this piece wrong'} for ${esc(occName(UI.occ))}?</p><div class="field">${its.map(x => `<label class="check"><input type="checkbox" name="nocc" value="${x.id}"><span class="chip-piece">${sw(x, true)}<span>Don't suggest ${esc(x.name)} for ${esc(occName(UI.occ))}</span></span></label>`).join('')}</div>`;
-  b += `<p class="small muted" style="margin-top:14px">Nothing ticked? It's just skipped for now.</p>`;
-  openSheet("What doesn't work?", b, '<button class="btn primary" data-act="nope-save">Save</button>');
-}
-function saveNope() {
-  const pairs = [...document.querySelectorAll('input[name="np"]:checked')].map(x => x.value);
-  const occs = [...document.querySelectorAll('input[name="nocc"]:checked')].map(x => x.value);
-  const { key } = SH; const occ = UI.occ;
-  closeSheet();
-  if (!pairs.length && !occs.length) { if (key) UI.skip.add(key); UI.sugg = null; render(); toast('Skipped for now'); return; }
-  commit(pairs.length ? `Got it. Won't pair ${pairs.length > 1 ? 'those' : 'them'} again.` : `Removed from ${occName(occ)}`, () => {
-    const t = todayStr();
-    for (const p of pairs) { D.clash[p] = { at: t }; delete D.liked[p]; }
-    for (const id of occs) { const it = D.items.find(x => x.id === id); if (!it) continue; it.occ = it.occ.length ? it.occ.filter(o => o !== occ) : D.occasions.map(o => o.id).filter(o => o !== occ); }
-  });
-}
-
-/* add pair sheet */
-function openPairNew() {
-  SH = { kind: 'pair', a: null, b: null, q: '', type: 'all', date: UI.date };
-  const b = `<p class="lede" id="pStep"></p><div class="field"><input type="search" id="bQ" placeholder="Search" autocomplete="off" aria-label="Search pieces">
-    <div class="chips" id="bTypes">${[['all', 'All'], ...TYPES.map(t => [t[0], t[2]])].map(([k, l]) => `<button class="chip" role="radio" aria-checked="${k === 'all'}" data-act="b-type" data-k="${k}">${l}</button>`).join('')}</div>
-    <div class="picklist" id="bList"></div></div>`;
-  openSheet("Add a pair that doesn't work", b, '<button class="btn primary" data-act="pair-save" id="pSave" disabled>Save rule</button>');
-  refreshPair();
-}
-function refreshPair() {
-  const a = SH.a && IX.byId.get(SH.a), b = SH.b && IX.byId.get(SH.b);
-  $('#pStep').innerHTML = !a ? 'Pick the first piece.' : !b ? `<b>${esc(a.name)}</b> doesn't go with…` : `<b>${esc(a.name)}</b> doesn't go with <b>${esc(b.name)}</b>.`;
-  $('#pSave').disabled = !(a && b);
-  renderPickList();
 }
 
 /* import */
@@ -2058,7 +1983,7 @@ function openImport(res, fileName) {
   const count = t => res.items.filter(x => x.type === t).length;
   const dated = res.items.filter(x => x.worn).length;
   const untagged = res.items.filter(x => !x.occ.length).length;
-  let b = `<p class="lede">Found <b>${plural(res.items.length, 'piece')}</b> in ${esc(fileName)}: ${TYPES.filter(t => count(t[0])).map(t => t[0] === 'shoes' ? plural(count(t[0]), 'pair of shoes', 'pairs of shoes') : plural(count(t[0]), t[1].toLowerCase(), t[2].toLowerCase())).join(', ')}.${dated ? ` ${dated} have a last-worn date, which becomes their starting point.` : ''}${untagged ? ` ${untagged} have no occasion ticked, so they'll only be suggested under Any until you tag them.` : ''}</p>`;
+  let b = `<p class="lede">Found <b>${plural(res.items.length, 'piece')}</b> in ${esc(fileName)}: ${TYPES.filter(t => count(t[0])).map(t => t[0] === 'shoes' ? plural(count(t[0]), 'pair of shoes', 'pairs of shoes') : plural(count(t[0]), t[1].toLowerCase(), t[2].toLowerCase())).join(', ')}.${dated ? ` ${dated} have a last-worn date, which becomes their starting point.` : ''}${untagged ? ` ${untagged} have no occasion ticked, so they'll only show under Any until you tag them.` : ''}</p>`;
   b += `<p class="lede" style="margin-top:10px">${replace ? (D.sample ? 'This replaces the sample closet.' : '') : 'You already have a closet here, so only new pieces and new wear dates are added. Nothing is removed.'} Blank types and colours are guessed from the names. Check the types below, or fix anything later in Closet.</p>`;
   if (res.occasions.length) b += `<p class="lede" style="margin-top:10px">Occasions: ${res.occasions.map(o => `<b>${esc(o.name)}</b>${o.days ? ` (${daysLabel(o.days)})` : ''}`).join(', ')}.</p>`;
   b += `<ul class="plain field">${res.items.map((x, n) => `<li class="imp-row">${swHtml(x.color)}<span>${esc(x.name)}</span><select data-imp="${n}" aria-label="Type for ${esc(x.name)}">${TYPES.map(t => `<option value="${t[0]}" ${x.type === t[0] ? 'selected' : ''}>${t[1]}</option>`).join('')}</select></li>`).join('')}</ul>`;
@@ -2090,7 +2015,7 @@ function applyImport() {
     }
   });
   UI.occ = validOcc(UI.occ) ? UI.occ : defaultOcc(UI.date);
-  UI.tab = 'today'; UI.skip.clear(); render(); window.scrollTo(0, 0);
+  UI.tab = 'today'; render(); window.scrollTo(0, 0);
 }
 
 /* backup */
@@ -2198,7 +2123,7 @@ async function addPhoto(file, target) {
     const blob = await shrinkImage(file), id = 'p' + uid();
     await photoPut(id, blob).catch(() => { throw new Error("Photos can't be saved in this browser."); });
     if (target === '__builder') { if (SH && SH.kind === 'build') { SH.photo = id; refreshBuilderPhoto(); } return; }
-    commit('Photo added', () => { const l = D.logs.find(x => x.id === target); if (l) { l.photo = id; if (l.src === 'plan') l.src = 'app'; } }, { keepSugg: true });
+    commit('Photo added', () => { const l = D.logs.find(x => x.id === target); if (l) { l.photo = id; if (l.src === 'plan') l.src = 'app'; } }, { keepPick: true });
   } catch (e) { toast(e.message || "Couldn't add that photo."); }
 }
 function openViewer(list) {
@@ -2224,52 +2149,13 @@ function commit(msg, fn, opts = {}) {
   const snap = JSON.stringify(D);
   fn();
   persist();
-  if (opts.keepSugg !== true) UI.sugg = null;
+  if (opts.keepPick !== true) UI.pk = null;
   render();
   if (typeof msg === 'function') msg = msg();
-  if (msg) toast(msg, () => { D = normalize(JSON.parse(snap)); persist(); UI.sugg = null; render(); toast('Undone'); });
+  if (msg) toast(msg, () => { D = normalize(JSON.parse(snap)); persist(); UI.pk = null; render(); toast('Undone'); });
 }
 
 /* ---------- actions ---------- */
-function swapSlot(i, slot) {
-  const c = UI.sugg && UI.sugg.list[i]; if (!c) return;
-  const date = UI.date, occ = UI.occ, seed = UI.sugg.key + '|swap';
-  const cycle = (ids, cur, set) => { if (!ids.length || (ids.length === 1 && ids[0] === cur)) { toast(`No other ${slot === 'shoes' ? 'pair of shoes' : T1[slot].toLowerCase()} fits here.`); return false; } const k = ids.indexOf(cur); set(ids[(k + 1) % ids.length]); return true; };
-  if (SLOTS.includes(slot)) {
-    const ranked = slot === 'layer' ? rankLayers(c.main, date, occ, seed) : rankAcc(slot, wornIds(c), date, occ, seed);
-    cycle(ranked, c[slot], id => { c[slot] = id; c[slot + 'On'] = true; if (slot === 'layer') c.layerAuto = false; }); render(); return;
-  }
-  const its = c.main.map(id => IX.byId.get(id));
-  const cur = its.find(x => x.type === slot); if (!cur) return;
-  let pool;
-  if (slot === 'dress') pool = D.items.filter(d => d.type === 'dress' && eligible(d, occ)).map(d => [d.id, (st(d, date).ready ? 1 : 0) + dressScore(d, date, seed)]);
-  else {
-    const other = its.find(x => x.type !== slot);
-    pool = D.items.filter(x => x.type === slot && eligible(x, occ) && allowedPair(slot === 'top' ? x : other, slot === 'top' ? other : x) && !(c.layer && c.layerOn && isClash(x.id, c.layer)))
-      .map(x => { const t = slot === 'top' ? x : other, b = slot === 'top' ? other : x; return [x.id, (st(x, date).ready ? 1 : 0) + sepScore(t, b, date, seed)]; });
-  }
-  pool.sort((a, b) => b[1] - a[1]);
-  if (!cycle(pool.map(p => p[0]), cur.id, id => { c.main = c.main.map(m => (m === cur.id ? id : m)); })) return;
-  if (c.layer && c.main.some(m => isClash(m, c.layer))) c.layer = rankLayers(c.main, date, occ, seed)[0] || null;
-  const needs = c.main.some(id => IX.byId.get(id).needsLayer);
-  if (c.layerAuto !== false) c.layerOn = !!c.layer && needs; // switched on for the old top: follow the new one
-  else if (needs && c.layer) c.layerOn = true;
-  for (const t of ACC) if (c[t] && wornIds(c).some(m => isClash(m, c[t]))) { c[t] = rankAcc(t, wornIds(c), date, occ, seed)[0] || null; c[t + 'On'] = !!c[t]; }
-  render();
-}
-function wear(i) {
-  const c = UI.sugg.list[i]; if (!c) return;
-  const ids = ideaIds(c);
-  const date = UI.date;
-  commit(date === todayStr() ? 'Logged for today' : date > todayStr() ? `Planned for ${fmtShort(date)}` : `Logged for ${fmtShort(date)}`, () => { D.logs.push({ id: uid(), date, items: ids, occ: UI.occ === 'any' ? null : UI.occ, src: date > todayStr() ? 'plan' : 'app', created: Date.now() }); });
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
-function toggleLike(i) {
-  const c = UI.sugg.list[i]; if (!c) return;
-  const k = mainKey(c.main); if (!k) return;
-  const was = !!D.liked[k];
-  commit(was ? 'Unmarked' : 'Marked as going together', () => { if (was) delete D.liked[k]; else D.liked[k] = { at: todayStr(), layer: c.layer && c.layerOn ? c.layer : null }; }, { keepSugg: true });
-}
 function armDelete(btn, label, run) {
   if (btn.dataset.armed) { run(); return; }
   btn.dataset.armed = '1'; btn.classList.add('armed'); btn.textContent = label;
@@ -2281,9 +2167,11 @@ document.addEventListener('click', e => {
   const act = el.dataset.act, i = el.dataset.i !== undefined ? Number(el.dataset.i) : null;
   switch (act) {
     case 'tab': clearToast(); UI.tab = el.dataset.tab; if (UI.tab !== 'closet') UI.q = ''; render(); window.scrollTo(0, 0); break;
-    case 'occ': UI.occ = el.dataset.id; UI.skip.clear(); render(); break;
+    case 'occ': UI.occ = el.dataset.id; render(); break;
     case 'go-today': UI.date = todayStr(); UI.occ = dayOcc(UI.date); render(); break;
-    case 'plan-pick': UI.date = el.dataset.d; UI.occ = dayOcc(UI.date); UI.skip.clear(); UI.tab = 'today'; render(); window.scrollTo(0, 0); break;
+    case 'plan-pick': openPlanPicker(el.dataset.d); break;
+    case 'plan-edit': { const l = D.logs.find(x => x.id === el.dataset.id); if (l) openPlanPicker(l.date, l.id); break; }
+    case 'pk-pick': case 'pk-mode': case 'pk-extra': case 'pk-occ': case 'pk-goes': case 'pk-nope': case 'pk-wear': pickerAct(act, el); break;
     case 'plan-occ': {
       const d = el.dataset.d, order = [...D.occasions.map(o => o.id), 'skip'], cur = planOcc(d), nx = order[(order.indexOf(cur) + 1) % order.length];
       commit(null, () => { D.dayOcc[d] = nx; if (nx !== 'skip') D.logs.forEach(l => { if (l.date === d && l.src !== 'import') l.occ = nx; }); }); break;
@@ -2292,7 +2180,7 @@ document.addEventListener('click', e => {
     case 'plan-fill': planFill(); break;
     case 'pic-add': UI.picBack = { id: SH.id, draft: itemDraft() }; $('#filePic').click(); break;
     case 'pic-paste': UI.picBack = { id: SH.id, draft: itemDraft() }; pastePic(UI.picBack); break;
-    case 'pic-del': { const id = SH.id, dr = itemDraft(); dr.pic = null; if (id) commit('Photo removed', () => { const it = D.items.find(x => x.id === id); if (it) it.pic = null; }, { keepSugg: true }); openItem(id, dr); break; }
+    case 'pic-del': { const id = SH.id, dr = itemDraft(); dr.pic = null; if (id) commit('Photo removed', () => { const it = D.items.find(x => x.id === id); if (it) it.pic = null; }, { keepPick: true }); openItem(id, dr); break; }
     case 'cut-mode': SH.mode = el.dataset.k; el.parentNode.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', b === el)); $('#cutTools').hidden = SH.mode === 'whole'; queueCut(); break;
     case 'cut-brush': SH.brush = el.dataset.k; el.parentNode.querySelectorAll('button').forEach(b => b.setAttribute('aria-checked', b === el)); break;
     case 'cut-undo': if (SH.undo.length) { SH.edit = SH.undo.pop(); queueCut(); } break;
@@ -2303,26 +2191,6 @@ document.addEventListener('click', e => {
     case 'run-paste': pastePic({ run: { queue: SH.queue, idx: SH.idx }, id: SH.queue[SH.idx] }); break;
     case 'run-skip': openPhotoRun(SH.queue, SH.idx + 1); break;
     case 'run-pick': UI.picBack = { run: { queue: SH.queue, idx: SH.idx }, id: SH.queue[SH.idx] }; $('#filePic').click(); break;
-    case 'mm-pick': { const M = UI.mm; M[el.dataset.slot] = el.dataset.id || null; renderMix(); break; }
-    case 'mm-mode': UI.mm.mode = el.dataset.k; renderMix(); break;
-    case 'mm-occ': UI.mm.occ = el.dataset.k; UI.mmScroll = {}; renderMix(); break;
-    case 'mm-shuffle': {
-      const { M, pool } = mixState(), today = todayStr(), clean = i => st(i, today).clean, pick = a => a[Math.floor(Math.random() * a.length)];
-      if (M.mode === 'dress') { const d = pool('dress').filter(clean); if (d.length) M.dress = pick(d).id; }
-      else { const pairs = []; for (const t of pool('top').filter(clean)) for (const b of pool('bottom').filter(clean)) if (allowedPair(t, b)) pairs.push([t.id, b.id]); if (pairs.length) [M.top, M.bottom] = pick(pairs); }
-      M.layer = null;
-      const main = M.mode === 'dress' ? [M.dress] : [M.top, M.bottom];
-      for (const t of ACC) { const r = rankAcc(t, main.filter(Boolean), today, M.occ, String(Math.random())); M[t] = r.length ? r[Math.floor(Math.random() * Math.min(3, r.length))] : null; }
-      renderMix(); break;
-    }
-    case 'mm-goes': case 'mm-nope': {
-      const { top, bottom } = UI.mm, k = pk(top, bottom), yes = act === 'mm-goes', on = yes ? goes(top, bottom) : isClash(top, bottom);
-      commit(on ? 'Cleared' : yes ? 'Marked as going together' : "Got it. Won't pair them again.", () => {
-        delete D.liked[k]; delete D.clash[k];
-        if (!on) (yes ? D.liked : D.clash)[k] = { at: todayStr() };
-      }); break;
-    }
-    case 'mm-wear': { const M = UI.mm, ids = [...(M.mode === 'dress' ? [M.dress] : [M.top, M.bottom]), M.layer, M.shoes, M.bag].filter(Boolean); if (ids.length) openBuilder(null, ids); break; }
     case 'wl-open': openWelcome(0); break;
     case 'wl-next': openWelcome(SH.step + 1); break;
     case 'wl-back': openWelcome(SH.step - 1); break;
@@ -2366,13 +2234,6 @@ document.addEventListener('click', e => {
     }
     case 'viewer-close': $('#viewerRoot').innerHTML = ''; break;
     case 'backup-share': if (SH && SH.file) offerFile(`rotation-backup-${todayStr()}.json`, SH.file, 'application/json'); break;
-    case 'shuffle': UI.shuffle++; render(); break;
-    case 'swap': swapSlot(i, el.dataset.slot); break;
-    case 'slot-on': case 'slot-off': { const c = UI.sugg.list[i]; c[el.dataset.slot + 'On'] = act === 'slot-on'; if (el.dataset.slot === 'layer') c.layerAuto = false; render(); break; }
-    case 'wear': wear(i); break;
-    case 'nope': openNope(i); break;
-    case 'nope-save': saveNope(); break;
-    case 'like': toggleLike(i); break;
     case 'log-new': openBuilder(null); break;
     case 'log-edit': openBuilder(el.dataset.id); break;
     case 'closet-untagged': UI.tab = 'closet'; UI.cType = 'all'; UI.cOcc = 'none'; render(); window.scrollTo(0, 0); break;
@@ -2390,19 +2251,11 @@ document.addEventListener('click', e => {
     case 'b-pick': pickInBuilder(el.dataset.id); break;
     case 'b-save': saveBuilder(); break;
     case 'b-del': { const id = SH.id; el.dataset.orig = 'Delete'; armDelete(el, 'Tap again', () => { closeSheet(); commit('Outfit deleted', () => { D.logs = D.logs.filter(l => l.id !== id); }); }); break; }
-    case 'pair-new': openPairNew(); break;
     case 'match-open': { const id = el.dataset.id; if (SH) closeSheet(); openMatch(id, null); break; }
-    case 'match-start': {
-      const list = D.items.filter(i => i.type === el.dataset.t && !i.out).map(i => i.id); if (!list.length) { toast(`No ${el.dataset.t}s in your closet yet.`); return; }
-      openMatch(list.find(id => !IX.ticks.get(id) && !matchList(IX.byId.get(id), 'no').length) || list[0], list); break;
-    }
     case 'm-set': { const id = el.dataset.id, v = el.dataset.v; SH.state[id] = SH.state[id] === v ? '' : v; const row = el.closest('.mrow'); row.className = 'mrow ' + SH.state[id]; row.querySelectorAll('[data-act="m-set"]').forEach(x => x.setAttribute('aria-pressed', SH.state[id] === x.dataset.v)); updateMatchCount(); break; }
     case 'm-save': saveMatch('Saved'); closeSheet(); break;
     case 'm-next': { const { id, queue } = SH; saveMatch(); closeSheet(); const nx = queue[queue.indexOf(id) + 1]; if (nx) openMatch(nx, queue); break; }
-    case 'p-pick': { const id = el.dataset.id; if (SH.a === id) { SH.a = SH.b; SH.b = null; } else if (SH.b === id) SH.b = null; else if (!SH.a) SH.a = id; else SH.b = id; refreshPair(); break; }
-    case 'pair-save': { const { a, b } = SH; closeSheet(); commit("Saved. They won't be paired again.", () => { D.clash[pk(a, b)] = { at: todayStr() }; delete D.liked[pk(a, b)]; }); break; }
     case 'clash-del': { const k = el.dataset.k; const keep = el.dataset.keep && SH && SH.id; if (keep) closeSheet(); commit('Rule removed', () => { delete D.clash[k]; }); if (keep) openItem(keep); break; }
-    case 'like-del': { const k = el.dataset.k; commit('Removed', () => { delete D.liked[k]; }); break; }
     case 'rest': { const k = el.dataset.k, d = Number(el.dataset.d); const v = Math.max(k === 'combo' || isAcc(k) ? 0 : 1, Math.min(120, D.rest[k] + d)); if (v === D.rest[k]) return; commit(null, () => { D.rest[k] = v; }); break; }
     case 'pick-excel': $('#fileExcel').click(); break;
     case 'pick-backup': $('#fileBackup').click(); break;
@@ -2432,7 +2285,7 @@ document.addEventListener('input', e => {
 });
 document.addEventListener('change', e => {
   const t = e.target;
-  if (t.id === 'dateInput' && t.value) { UI.date = t.value; UI.occ = dayOcc(UI.date); UI.skip.clear(); render(); }
+  if (t.id === 'dateInput' && t.value) { UI.date = t.value; UI.occ = dayOcc(UI.date); render(); }
   else if (t.id === 'filePhoto' && t.files[0]) { addPhoto(t.files[0], UI.photoFor); t.value = ''; }
   else if (t.id === 'filePic' && t.files[0]) { const f = t.files[0]; t.value = ''; openCutout(f, UI.picBack || { id: null, draft: {} }); }
   else if (t.id === 'cutEdge' && SH && SH.kind === 'cut' && SH.res) { const v = Number(t.value);
@@ -2446,7 +2299,7 @@ document.addEventListener('change', e => {
   else if (t.id === 'fileExcel' && t.files[0]) { readExcelFile(t.files[0]); t.value = ''; }
   else if (t.id === 'fileBackup' && t.files[0]) { t.files[0].text().then(restoreFrom); t.value = ''; }
 });
-document.addEventListener('scroll', e => { const el = e.target; if (el && el.classList && el.classList.contains('mm-scroll')) { UI.mmScroll = UI.mmScroll || {}; UI.mmScroll[el.dataset.slot] = el.scrollLeft; } }, true);
+document.addEventListener('scroll', e => { const el = e.target; if (el && el.classList && el.classList.contains('mm-scroll')) { UI.mmScroll = UI.mmScroll || {}; UI.mmScroll[el.dataset.key] = el.scrollLeft; } }, true);
 document.addEventListener('paste', e => {
   if (!SH || (SH.kind !== 'item' && SH.kind !== 'run')) return;
   const f = [...((e.clipboardData && e.clipboardData.files) || [])].find(x => x.type.startsWith('image/'));
@@ -2459,7 +2312,7 @@ document.addEventListener('click', e => { if (e.target.id === 'dateInput') { try
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState !== 'visible') return;
   const t = todayStr();
-  if (UI.lastToday && UI.lastToday !== t) { reindex(); if (UI.date === UI.lastToday) { UI.date = t; UI.occ = dayOcc(t); } UI.sugg = null; if (!SH) render(); }
+  if (UI.lastToday && UI.lastToday !== t) { reindex(); if (UI.date === UI.lastToday) { UI.date = t; UI.occ = dayOcc(t); } UI.pk = null; if (!SH) render(); }
   UI.lastToday = t;
 });
 UI.lastToday = todayStr();
@@ -2469,7 +2322,7 @@ render();
 if (D.sample && !lsGet('lemari:welcomed')) openWelcome(0);
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) {}
 if ('serviceWorker' in navigator && document.querySelector('link[rel="manifest"]')) navigator.serviceWorker.register('sw.js').catch(() => {});
-window.__lemari = { get D() { return D; }, get UI() { return UI; }, interpretGrid, readXlsx, suggest, render, st: (id, d) => st(IX.byId.get(id), d), laundryNow: id => laundryNow(IX.byId.get(id)) };
+window.__lemari = { get D() { return D; }, get UI() { return UI; }, interpretGrid, readXlsx, newPicker, render, st: (id, d) => st(IX.byId.get(id), d), laundryNow: id => laundryNow(IX.byId.get(id)) };
 })();
 </script>
 

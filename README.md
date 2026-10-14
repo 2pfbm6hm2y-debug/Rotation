@@ -1,16 +1,15 @@
 # Rotation
 
-Keeps track of what you wear and suggests outfits you haven't repeated too soon. It runs entirely on the phone.
+Keeps track of what you wear and puts your freshest top and bottom first, so nothing comes back too soon. It runs entirely on the phone.
 
-- **Suggestions by occasion.** Pick an occasion, like Work or Casual, and get five outfit ideas: a top and a bottom, or a dress, with a cardigan or other layer when it fits.
-- **Shoes and bags.** Add them to your closet and each idea comes with a pair of shoes and a bag that suit it. They rotate too, rested ones first. If every pair is still resting, the most rested one is picked, so an idea never comes without shoes. They never go to the laundry.
-- **No repeats too soon.** Each piece rests for a set number of days after you wear it. The exact same top and bottom also rest as a pair, so an outfit doesn't come back even when both pieces are free again.
-- **You decide what goes together.** In **Pairs**, go through your tops one by one and tick the bottoms that go with each, or cross out the ones that don't. Set a top to *only these* and it's never paired with anything else.
-- **See outfits before you wear them.** Copy each piece from Photos and paste it in, without the background. Ideas show as a little flat lay, and **Pairs > Mix & match** lets you try any top, bottom, dress and layer together. Pieces without a photo show as a shape in their colour.
-- **OOTD photos.** Add a photo when you log an outfit. When the same top and bottom (or dress) comes up as an idea again, the photo shows on it so you can see how it looked.
-- **Laundry.** A top goes to the laundry after one wear and a bottom after three. Pieces in the laundry aren't suggested until you tap **Laundry done**.
-- **Plan the week.** Plan days ahead in **Week**, or let it fill the empty days for you. Planned outfits count as worn, so a skirt you need on Sunday isn't used up earlier in the week.
-- **Learns as you go.** Tap **Doesn't work** on an idea and tick the pieces that clash. They won't be paired again. Tap the heart on pairings you like and they come up a bit more often.
+- **Freshest first.** Pick an occasion, like Work or Casual. Today shows your tops and bottoms sorted by how long since you last wore them, with the freshest pair already picked. Tap any other piece to switch. A **Dress** switch does the same for dresses.
+- **See it before you wear it.** The picked top and bottom show together as a little flat lay. Copy each piece from Photos and paste it in, without the background. Pieces without a photo show as a shape in their colour.
+- **Your photo from last time.** Add an OOTD photo when you log an outfit. Whenever you pick that top and bottom again, the photo shows next to the picture with the date.
+- **Shoes, bag and layer if you like.** Tap **+ Shoes**, **+ Bag** or **+ Layer** to add one. Nothing is added for you. Tops marked as needing a layer show a reminder.
+- **No repeats too soon.** Each piece rests for a set number of days after you wear it. Resting pieces stay in the rows, dimmed and after the rested ones.
+- **What goes together.** Tap **Doesn't go** and that top and bottom are never picked together. **Goes together** marks the ones you like. From a piece's page in Closet you can also tick, top by top, which bottoms go with it.
+- **Laundry.** A top goes to the laundry after one wear and a bottom after three. Pieces in the laundry move to the end until you tap **Laundry done**. Shoes and bags never go to the laundry.
+- **Plan the week.** In **Week**, tap a day to plan it with the same picker, or let it fill the empty days with the freshest pairs. Planned outfits count as worn, so a skirt you need on Sunday isn't used up earlier in the week.
 - **Private.** Your closet, history and photos stay on the phone. No sign-up, no internet needed after the first open.
 
 ## Put it online (GitHub Pages, free)
@@ -51,22 +50,21 @@ The app opens with a small sample closet so you can try it. When you're ready, f
 
 3. In Rotation, tap **Import closet** and pick the file. A CSV with the same headers works too.
 
-Check the types on the import screen before you confirm. You can fix anything later in **Closet**, and change each occasion's days in **More**. Pieces with no occasion ticked are only suggested under **Any** until you tag them.
+Check the types on the import screen before you confirm. You can fix anything later in **Closet**, and change each occasion's days in **More**. Pieces with no occasion ticked only show under **Any** until you tag them.
 
 Importing again later only adds new pieces and new wear dates. It never removes anything.
 
 ## Day to day
 
 - **Today** picks the occasion set for that day of the week. Tap another one any time.
-- Tap the swap arrows on a piece to try the next best option in that slot, shoes and bag included. Tap **Add** on a suggested layer to include it, or the × to leave the shoes or bag out.
+- The freshest top and bottom are already picked. Tap any other one in the rows to switch. If you pick a top, the bottom follows with the freshest one that goes with it, until you pick a bottom yourself.
 - **Wear this** logs the outfit. Change the date first to plan tomorrow or to log a past day.
-- **Log a different outfit** is for when you wore something else.
-- In **Closet**, open any piece to edit it, mark it out of rotation, or add it to a day's outfit.
-- **Pairs > Match tops** walks you through each top. Tick the bottoms that go with it, cross out the ones that don't, then **Save and next top**. Leave *Only pair it with the ticked bottoms* on to rule out everything else, or turn it off to just prefer the ticked ones. **Match bottoms** works the same way from the other side.
+- **Log something else** is for anything the picker doesn't cover, like two layers.
+- In **Closet**, open any piece to edit it, mark it out of rotation, or add it to a day's outfit. **Match bottoms** on a top's page lets you tick the bottoms that go with it. Leave *Only pair it with the ticked bottoms* on to rule out everything else.
 - **Add photo** on today's outfit, or in **Log an outfit**, saves an OOTD photo. Tap any photo to see it full screen.
-- **Week** shows the next eight days. Set a day first (say Sunday), then tap **Plan empty days** and the rest are picked around it. Tap a day's occasion to change it or set it to *No plan*. The × clears a planned day.
+- **Week** shows the next eight days. Tap **Pick an outfit** on a day to plan it with the picker, or tap a planned day to change it. Set a day first (say Sunday), then tap **Plan empty days** and the rest are picked around it. Tap a day's occasion to change it or set it to *No plan*. The × clears a planned day.
 - When you do the washing, tap **Laundry done** in Week or Closet and tick what went in. You can also mark a single piece as washed from its page in Closet.
-- **More** has the rest days (shoes and bags have their own), the wears before washing, and your occasions with their days.
+- **More** has the rest days, the wears before washing, and your occasions with their days.
 
 ## Photos of your clothes
 

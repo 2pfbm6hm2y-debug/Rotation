@@ -419,6 +419,16 @@ input[type="range"]{width:100%;accent-color:var(--accent);min-height:32px}
 .tabs button{height:var(--tabh);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--muted)}
 .tabs button svg{width:24px;height:24px}
 .tabs button[aria-current="page"]{color:var(--accent)}
+.tabs button{position:relative}
+.tab-dot{position:absolute;top:8px;left:calc(50% + 9px);width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 2px var(--tabs-bg)}
+.sortcard{padding:12px 14px}
+.sort-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;font-family:var(--display);font-size:16px}
+.sortrow{display:grid;grid-template-columns:28px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-top:1px solid var(--sunk)}
+.sortrow .rowpic{justify-self:center}
+.seg.mini{padding:3px;border-radius:11px}
+.seg.mini button{padding:6px 10px;font-size:13px;border-radius:8px}
+.sort-foot{display:flex;justify-content:flex-end;margin-top:8px}
+.row.lx{cursor:default}
 
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(var(--tabh) + 14px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--toast-bg);color:var(--toast-fg);border-radius:12px;padding:10px 10px 10px 14px;display:flex;align-items:center;gap:12px;max-width:calc(100% - 32px);width:max-content;font-size:14px;box-shadow:0 8px 30px rgba(0,0,0,.25);animation:rise .2s ease}
 .toast button{color:var(--toast-link);font-weight:700;padding:4px 6px}
@@ -717,7 +727,7 @@ void main(){ ivec3 q = here(); o = vec4(clamp(at(uX, uXL, q.x, q.y, 0).x, 0.0, 1
 <script>
 'use strict';
 (() => {
-const VERSION = '2.0.0';
+const VERSION = '2.1.0';
 const KEY = 'lemari:data:v1', UIKEY = 'lemari:ui:v1';
 const INSTALLED = !!document.querySelector('link[rel="manifest"]'); // the home-screen build can save files, the preview can't
 
@@ -849,7 +859,7 @@ const ICON = {
   today: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9.6 6.2a2.4 2.4 0 1 1 3.3 2.2c-.6.3-.9.8-.9 1.4v.7"/><path d="M12 10.5 3.2 16.6c-.8.6-.4 1.9.6 1.9h16.4c1 0 1.4-1.3.6-1.9L12 10.5Z"/></svg>',
   closet: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="4.5" y="3" width="15" height="17.5" rx="2"/><path d="M12 3v17.5M9.6 10.5v2.4M14.4 10.5v2.4M6.5 20.5v1M17.5 20.5v1"/></svg>',
   week: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="15.5" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
-  pairs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="9" cy="12" r="5.6"/><circle cx="15" cy="12" r="5.6"/></svg>',
+  laundry: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 9.5h17l-1.7 9.6a2 2 0 0 1-2 1.7H7.2a2 2 0 0 1-2-1.7Z"/><path d="m8.5 9.5 2.5-5.5M15.5 9.5 13 4"/><path d="M9.3 13.5v3.5M12 13.5v3.5M14.7 13.5v3.5"/></svg>',
   more: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h9.5M18.5 7H20M4 17h3.5M12.5 17H20"/><circle cx="16" cy="7" r="2.3"/><circle cx="10" cy="17" r="2.3"/></svg>',
   swap: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16.5 3.5 20 7l-3.5 3.5"/><path d="M20 7H9.5A5.5 5.5 0 0 0 4 12.5"/><path d="M7.5 20.5 4 17l3.5-3.5"/><path d="M4 17h10.5a5.5 5.5 0 0 0 5.5-5.5"/></svg>',
   heart: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 20s-7.5-4.6-7.5-10.2A4.2 4.2 0 0 1 12 7.3a4.2 4.2 0 0 1 7.5 2.5C19.5 15.4 12 20 12 20Z"/></svg>',
@@ -918,7 +928,7 @@ let IX = null;
 let SH = null; // open sheet state
 let storageOk = true;
 const savedUI = (() => { try { return JSON.parse(lsGet(UIKEY) || '{}'); } catch (e) { return {}; } })();
-const UI = { tab: savedUI.tab === 'history' ? 'week' : ['today', 'week', 'closet', 'more'].includes(savedUI.tab) ? savedUI.tab : 'today', weekDays: 8, date: todayStr(), occ: null, pk: null,
+const UI = { tab: savedUI.tab === 'history' ? 'week' : ['today', 'week', 'laundry', 'closet', 'more'].includes(savedUI.tab) ? savedUI.tab : 'today', weekDays: 8, date: todayStr(), occ: null, pk: null,
   cType: savedUI.cType || 'all', cOcc: 'all', cSort: savedUI.cSort || 'order', q: '' };
 UI.occ = (savedUI.occFor && savedUI.occFor.date === UI.date && validOcc(savedUI.occFor.occ)) ? savedUI.occFor.occ : dayOcc(UI.date);
 function saveUI() { lsSet(UIKEY, JSON.stringify({ tab: UI.tab, cType: UI.cType, cSort: UI.cSort, occFor: { date: UI.date, occ: UI.occ } })); }
@@ -961,19 +971,23 @@ const washCmp = (a, b) => a.date.localeCompare(b.date) || (a.at || 0) - (b.at ||
 const washedBy = (l, w) => l.date < w.date || (l.date === w.date && (l.created || 0) <= w.at);
 const washesFor = id => IX.washes.filter(w => !w.items || w.items.includes(id));
 const limitOf = item => (isAcc(item.type) ? Infinity : D.wash[item.type] ?? 99);
-// wears that count against the laundry limit for a new wear on `date`: past and planned, between the washes around it
+// How much of the wears-before-washing a wear uses: hung up after wearing uses none, put in the
+// basket uses it all, and a wear you haven't sorted counts as one (the wear limits in More decide).
+const wearLoad = (l, id, lim) => { const a = l.after && l.after[id]; return a === 'hang' ? 0 : a === 'basket' ? lim : 1; };
+// load against the limit for a new wear on `date`: past and planned wears, between the washes around it
 function washCount(item, date, logs) {
   let prevW = null, nextW = null;
   for (const w of washesFor(item.id)) { if (w.date <= date) prevW = w; else { nextW = w; break; } }
-  return logs.filter(l => (!prevW || !washedBy(l, prevW)) && (!nextW || washedBy(l, nextW))).length;
+  const lim = limitOf(item);
+  return logs.filter(l => (!prevW || !washedBy(l, prevW)) && (!nextW || washedBy(l, nextW))).reduce((a, l) => a + wearLoad(l, item.id, lim), 0);
 }
 // laundry state right now: wears since the last wash, up to today
 function laundryNow(item) {
-  if (isAcc(item.type)) return { n: 0, lim: Infinity, dirty: false, used: false };
-  const today = todayStr(), ws = washesFor(item.id), lastW = ws[ws.length - 1] || null;
-  const n = (IX.logsBy.get(item.id) || []).filter(l => l.date <= today && (!lastW || !washedBy(l, lastW))).length;
-  const lim = limitOf(item);
-  return { n, lim, dirty: n >= lim, used: n > 0 };
+  if (isAcc(item.type)) return { n: 0, load: 0, lim: Infinity, dirty: false, used: false, last: null, since: [] };
+  const today = todayStr(), ws = washesFor(item.id), lastW = ws[ws.length - 1] || null, lim = limitOf(item);
+  const since = (IX.logsBy.get(item.id) || []).filter(l => l.date <= today && (!lastW || !washedBy(l, lastW)));
+  const load = since.reduce((a, l) => a + wearLoad(l, item.id, lim), 0);
+  return { n: since.length, load, lim, dirty: load >= lim, used: since.length > 0, last: since[since.length - 1] || null, since };
 }
 // pieces in an outfit that go past their laundry limit
 function overLimit(log) {
@@ -982,8 +996,8 @@ function overLimit(log) {
     const it = IX.byId.get(id); if (!it) continue;
     const ws = washesFor(id);
     const prevW = [...ws].reverse().find(w => !washedBy(log, w)) || null, nextW = ws.find(w => washedBy(log, w)) || null;
-    const n = (IX.logsBy.get(id) || []).filter(l => (!prevW || !washedBy(l, prevW)) && (!nextW || washedBy(l, nextW))).length;
-    if (n > limitOf(it)) out.push(it);
+    const lim = limitOf(it), n = (IX.logsBy.get(id) || []).filter(l => (!prevW || !washedBy(l, prevW)) && (!nextW || washedBy(l, nextW))).reduce((a, l) => a + wearLoad(l, id, lim), 0);
+    if (n > lim) out.push(it);
   }
   return out;
 }
@@ -1054,7 +1068,7 @@ function byFresh(items, date, excl, avoid) {
 }
 const poolOf = (type, occ) => D.items.filter(i => i.type === type && eligible(i, occ));
 function freshLabel(s) {
-  if (!s.clean) return 'In the wash';
+  if (!s.clean) return 'In the basket';
   if (!s.ready) return s.days !== null && s.days < s.rest ? `Rests ${s.left}d` : `Planned ${fmtDM(s.next)}`;
   return s.days === null ? 'Not worn yet' : s.days === 0 ? 'Today' : `${s.days}d ago`;
 }
@@ -1100,7 +1114,7 @@ function pickerHtml(P, where) {
     facts.push(c.last ? `<span class="pill off">Together ${esc(fmtDM(c.last))}</span>` : '<span class="pill new">New pairing</span>');
   }
   for (const id of sel) { const it = get(id); if (!it) continue; const s = st(it, P.date, ex);
-    if (!s.clean) facts.push(`<span class="pill wash">${esc(it.name)} in the wash</span>`);
+    if (!s.clean) facts.push(`<span class="pill wash">${esc(it.name)} is in the basket</span>`);
     else if (!s.ready && !isAcc(it.type)) facts.push(`<span class="pill rest">${esc(it.name)}: ${esc(freshLabel(s).toLowerCase())}</span>`); }
   const needs = main.some(id => get(id) && get(id).needsLayer) && !P.layer;
   const label = P.logId ? 'Save plan' : P.date === today ? 'Wear this' : P.date > today ? 'Plan this' : 'Log this';
@@ -1124,7 +1138,7 @@ function pickerHtml(P, where) {
       ${photos.length ? `<button class="pk-ootd" data-act="photo-view" data-key="${k}" aria-label="See your photos of this outfit"><img data-photo="${photos[0].photo}" alt=""><span><b>You wore this</b><br>${esc(fmtShort(photos[0].date))}${photos.length > 1 ? ` · ${photos.length} photos` : ''}</span></button>` : ''}</div>
     ${facts.length ? `<div class="mm-status">${facts.join('')}</div>` : ''}
     ${needs ? `<p class="note" style="margin-top:10px">This ${P.mode === 'dress' ? 'dress' : 'top'} needs a layer over it. <button class="link" data-act="pk-extra" data-slot="layer">Pick one</button></p>` : ''}
-    <div class="mm-actions"><button class="btn primary" data-act="pk-wear"${main.every(Boolean) ? '' : ' disabled'}>${label}</button></div>
+    <div class="mm-actions"><button class="btn primary" data-act="pk-wear"${main.every(Boolean) ? '' : ' disabled'}>${label}</button>${!P.logId && P.date <= today ? `<button class="btn" data-act="pk-wear-photo" aria-label="${label} and add a photo"${main.every(Boolean) ? '' : ' disabled'}>${label}${ICON.camera}</button>` : ''}</div>
     ${t && b ? `<div class="pk-rate"><button class="btn small quiet" data-act="pk-goes" aria-pressed="${goes(t.id, b.id)}">${ICON.check}Goes together</button><button class="btn small quiet nope" data-act="pk-nope" aria-pressed="${isClash(t.id, b.id)}">${ICON.x}Doesn't go</button></div>` : ''}
     ${hasDress ? `<div class="seg" role="radiogroup" aria-label="Outfit kind" style="margin-top:16px"><button role="radio" aria-checked="${P.mode === 'sep'}" data-act="pk-mode" data-k="sep">Top &amp; bottom</button><button role="radio" aria-checked="${P.mode === 'dress'}" data-act="pk-mode" data-k="dress">Dress</button></div>` : ''}
     ${P.mode === 'dress' ? row('dress', 'Dresses', []) : row('top', 'Tops · freshest first', [P.bottom].filter(Boolean)) + row('bottom', 'Bottoms · freshest first', [P.top].filter(Boolean))}
@@ -1160,19 +1174,21 @@ function pickerAct(act, el) {
     return;
   }
   else if (act === 'pk-wear') { pickerWear(P, where); return; }
+  else if (act === 'pk-wear-photo') { const id = pickerWear(P, where); if (id) { UI.photoFor = id; $('#filePhoto').click(); } return; }
   renderPicker(where);
 }
 function pickerWear(P, where) {
   const main = P.mode === 'dress' ? [P.dress] : [P.top, P.bottom];
   if (!main.every(Boolean)) { toast(P.mode === 'dress' ? 'Pick a dress first.' : 'Pick a top and a bottom first.'); return; }
-  const ids = [...main, P.layer, P.shoes, P.bag].filter(Boolean), date = P.date, today = todayStr(), occ = P.occ === 'any' ? null : P.occ;
+  const ids = [...main, P.layer, P.shoes, P.bag].filter(Boolean), date = P.date, today = todayStr(), occ = P.occ === 'any' ? null : P.occ, newId = uid();
   if (where === 'sheet') closeSheet();
   commit(P.logId ? `Plan for ${fmtShort(date)} updated` : date === today ? 'Logged for today' : date > today ? `Planned for ${fmtShort(date)}` : `Logged for ${fmtShort(date)}`, () => {
     if (P.logId) { const l = D.logs.find(x => x.id === P.logId); if (l) Object.assign(l, { items: ids, occ }); }
-    else D.logs.push({ id: uid(), date, items: ids, occ, src: date > today ? 'plan' : 'app', created: Date.now() });
+    else D.logs.push({ id: newId, date, items: ids, occ, src: date > today ? 'plan' : 'app', created: Date.now() });
     if (where === 'sheet' && P.occ !== planOcc(date)) D.dayOcc[date] = P.occ;
   });
   if (where === 'today') window.scrollTo({ top: 0, behavior: 'smooth' });
+  return P.logId || newId;
 }
 // Week: plan one day with the same picker
 function openPlanPicker(date, logId) {
@@ -1221,7 +1237,7 @@ function board(ids, cls) {
 }
 function statusPill(item, date) {
   if (item.out) return '<span class="pill off">Off</span>';
-  if (laundryNow(item).dirty) return '<span class="pill wash">Laundry</span>';
+  if (laundryNow(item).dirty) return '<span class="pill wash">Basket</span>';
   const s = st(item, date);
   if (s.ready) return '<span class="pill ready">Ready</span>';
   return `<span class="pill rest">${s.left}d left</span>`;
@@ -1236,14 +1252,15 @@ function metaLine(item, date) {
 function occList(item) { return item.occ.length ? item.occ.map(occName).filter(Boolean).join(' · ') : 'No occasion yet'; }
 
 function tabsHtml() {
-  const T = [['today', 'Today'], ['week', 'Week'], ['closet', 'Closet'], ['more', 'More']];
-  return T.map(([k, l]) => `<button data-act="tab" data-tab="${k}" ${UI.tab === k ? 'aria-current="page"' : ''}>${ICON[k]}<span>${l}</span></button>`).join('');
+  const T = [['today', 'Today'], ['week', 'Week'], ['laundry', 'Laundry'], ['closet', 'Closet'], ['more', 'More']], dot = sortQueue(true).length > 0;
+  return T.map(([k, l]) => `<button data-act="tab" data-tab="${k}" ${UI.tab === k ? 'aria-current="page"' : ''}>${ICON[k]}<span>${l}</span>${k === 'laundry' && dot ? '<i class="tab-dot" aria-label="Outfit to sort"></i>' : ''}</button>`).join('');
 }
 function render() {
   $('#tabs').innerHTML = tabsHtml();
   const v = $('#view');
   if (UI.tab === 'closet') v.innerHTML = renderCloset();
   else if (UI.tab === 'week') v.innerHTML = renderWeek();
+  else if (UI.tab === 'laundry') v.innerHTML = renderLaundry();
   else if (UI.tab === 'more') v.innerHTML = renderMore();
   else v.innerHTML = renderToday();
   saveUI();
@@ -1273,6 +1290,8 @@ function renderToday() {
   if (!D.items.length) {
     return h + `<div class="empty" style="margin-top:18px"><p>Your closet is empty. Import it from the Rotation template, or add pieces one by one.</p><div class="btnrow"><button class="btn primary" data-act="wl-import-step">Import closet</button><button class="btn" data-act="item-new">Add a piece</button></div></div>`;
   }
+  const q = isToday ? sortQueue(true) : [];
+  if (q.length) h += `<div class="sec-head"><h2>Hang or basket?</h2>${q.length > 1 ? `<button class="link" data-act="tab" data-tab="laundry">${q.length - 1} more in Laundry</button>` : ''}</div>${sortCard(q[0])}`;
   if (logs.length) {
     h += `<div class="sec-head"><h2>${isToday ? 'Wearing today' : date > today ? 'Planned for this day' : 'Logged for this day'}</h2></div>`;
     h += logs.map(l => { const over = overLimit(l); return `<div class="worn-card"><div class="entry-row"><div class="chips-inline">${piecesOf(l.items).map(i => `<span class="chip-piece">${sw(i, true)}<span>${esc(i.name)}</span></span>`).join('')}</div>
@@ -1334,11 +1353,8 @@ function closetRow(i, date) {
 /* Week: plan ahead, laundry, and what was worn */
 function renderWeek() {
   const today = todayStr(), days = Array.from({ length: UI.weekDays }, (_, n) => addDays(today, n));
-  const act = D.items.filter(i => !i.out), L = new Map(act.map(i => [i.id, laundryNow(i)]));
-  const dirty = act.filter(i => L.get(i.id).dirty).length, partly = act.filter(i => !L.get(i.id).dirty && L.get(i.id).used).length;
   const empty = days.filter(d => d > today && planOcc(d) !== 'skip' && !D.logs.some(l => l.date === d)).length;
-  let h = `${sampleBanner()}<div class="page-head"><div><h1>Week</h1><p class="sub">Plan ahead and keep the laundry in check.</p></div><button class="btn small primary" data-act="log-new">Log outfit</button></div>`;
-  h += `<div class="card" style="margin-top:12px"><div class="set-row"><div><b>Laundry</b><div class="small muted">${dirty ? `${plural(dirty, 'piece')} waiting to be washed` : 'Everything is clean'}${partly ? ` · ${plural(partly, 'piece')} partly worn` : ''}</div></div><button class="btn small ${dirty ? 'primary' : ''}" data-act="laundry-open">Laundry done</button></div></div>`;
+  let h = `${sampleBanner()}<div class="page-head"><div><h1>Week</h1><p class="sub">Plan the days ahead.</p></div><button class="btn small primary" data-act="log-new">Log outfit</button></div>`;
   h += `<div class="sec-head"><h2>Coming up</h2>${empty ? `<button class="btn small primary" data-act="plan-fill">Plan ${plural(empty, 'empty day')}</button>` : ''}</div>`;
   h += `<div class="list">${days.map(planRow).join('')}</div>`;
   h += `<p class="help">Planned outfits count as worn on their day, so the picker keeps those pieces fresh and clean for it. Tap an occasion to change it, or set a day to <b>No plan</b>.</p>`;
@@ -1396,13 +1412,77 @@ function planFill() {
   });
 }
 
+/* end of the day: hang it up or put it in the basket */
+const EVENING = 17;   // from 5pm, today's outfit asks to be sorted on Today
+// clothes in an outfit still to sort: not washed since, and no choice made yet
+function sortItems(l) {
+  const out = [];
+  for (const id of l.items) {
+    const i = IX.byId.get(id); if (!i || isAcc(i.type) || (l.after && l.after[id])) continue;
+    const ws = washesFor(id); if (ws.some(w => washedBy(l, w))) continue;
+    const prevW = [...ws].reverse().find(w => !washedBy(l, w)) || null, lim = limitOf(i);
+    const before = (IX.logsBy.get(id) || []).filter(x => x !== l && logCmp(x, l) <= 0 && (!prevW || !washedBy(x, prevW)));
+    const load = before.reduce((a, x) => a + wearLoad(x, id, lim), 0);
+    out.push({ i, n: before.length + 1, def: load + 1 >= lim ? 'basket' : 'hang' });
+  }
+  return out;
+}
+// outfits from the last three days still to sort, newest first. onToday leaves out today's before the evening.
+function sortQueue(onToday) {
+  const today = todayStr(), from = addDays(today, -3), evening = new Date().getHours() >= EVENING;
+  return D.logs.filter(l => l.date <= today && l.date >= from && l.src !== 'import' && !(onToday && l.date === today && !evening) && sortItems(l).length)
+    .sort((a, b) => b.date.localeCompare(a.date) || (b.created || 0) - (a.created || 0));
+}
+function sortCard(l) {
+  const its = sortItems(l), today = todayStr();
+  return `<div class="card sortcard" data-log="${l.id}"><div class="sort-head"><b>${l.date === today ? 'Today' : l.date === addDays(today, -1) ? 'Yesterday' : esc(fmtShort(l.date))}</b>${l.photo ? `<img class="thumb sm" data-photo="${l.photo}" alt="">` : ''}</div>
+    ${its.map(({ i, n, def }) => `<div class="sortrow" data-id="${i.id}">${i.pic ? `<img class="rowpic" data-photo="${i.pic}" alt="">` : sw(i)}<span><span class="row-name">${esc(i.name)}</span><span class="row-meta">${n === 1 ? 'First wear since washing' : `Wear ${n} since washing`}</span></span>
+      <div class="seg mini" role="radiogroup" aria-label="${esc(i.name)}"><button role="radio" aria-checked="${def === 'hang'}" data-act="sort-pick" data-v="hang">Hang</button><button role="radio" aria-checked="${def === 'basket'}" data-act="sort-pick" data-v="basket">Basket</button></div></div>`).join('')}
+    <div class="sort-foot"><button class="btn small primary" data-act="sort-save" data-log="${l.id}">Save</button></div></div>`;
+}
+function saveSort(logId, card) {
+  const vals = {};
+  card.querySelectorAll('.sortrow').forEach(r => { const on = r.querySelector('[aria-checked="true"]'); if (on) vals[r.dataset.id] = on.dataset.v; });
+  const h = Object.values(vals).filter(v => v === 'hang').length, b = Object.values(vals).length - h;
+  commit([h ? `${h} to hang` : '', b ? `${b} to the basket` : ''].filter(Boolean).join(', '), () => {
+    const l = D.logs.find(x => x.id === logId); if (l) l.after = Object.assign({}, l.after, vals);
+  }, { keepPick: true });
+}
+// move a piece between the basket and hanging, by changing what you chose for its wears since washing
+function moveLaundry(id, to) {
+  const it = IX.byId.get(id), L = laundryNow(it);
+  commit(to === 'basket' ? `${it.name} is in the basket` : `${it.name} is hanging`, () => {
+    for (const x of L.since) {
+      const l = D.logs.find(y => y.id === x.id); if (!l) continue;
+      if (to === 'hang') l.after = Object.assign({}, l.after, { [id]: 'hang' });
+      else if (x === L.last) l.after = Object.assign({}, l.after, { [id]: 'basket' });
+    }
+  }, { keepPick: true });
+}
+
+/* Laundry: what's in the basket and what's hanging */
+function renderLaundry() {
+  const act = D.items.filter(i => !i.out && !isAcc(i.type)).map(i => [i, laundryNow(i)]).sort((a, b) => TORDER[a[0].type] - TORDER[b[0].type]);
+  const basket = act.filter(([, L]) => L.dirty), hanging = act.filter(([, L]) => L.used && !L.dirty), q = sortQueue(false);
+  const row = ([i, L], to) => `<div class="row lx">${i.pic ? `<img class="rowpic" data-photo="${i.pic}" alt="">` : sw(i)}<span><span class="row-name">${esc(i.name)}</span><span class="row-meta">${T1[i.type]} · ${plural(L.n, 'wear')} since washing${L.last ? ` · last ${esc(fmtDM(L.last.date))}` : ''}</span></span>
+    <button class="btn small quiet" data-act="lx-move" data-id="${i.id}" data-to="${to}">${to === 'basket' ? 'To basket' : 'Hang'}</button></div>`;
+  let h = `${sampleBanner()}<div class="page-head"><div><h1>Laundry</h1><p class="sub">${plural(basket.length, 'piece')} in the basket · ${hanging.length} hanging</p></div>${basket.length ? '<button class="btn small primary" data-act="laundry-open">Laundry done</button>' : ''}</div>`;
+  if (q.length) h += `<div class="sec-head"><h2>Hang or basket?</h2></div><div class="stack">${q.map(sortCard).join('')}</div>`;
+  h += `<div class="sec-head"><h2>In the basket</h2><span class="lab num">${basket.length}</span></div>`;
+  h += basket.length ? `<div class="list">${basket.map(x => row(x, 'hang')).join('')}</div>` : '<div class="empty"><p>The basket is empty.</p></div>';
+  h += `<div class="sec-head"><h2>Hanging</h2><span class="lab num">${hanging.length}</span></div>`;
+  h += hanging.length ? `<div class="list">${hanging.map(x => row(x, 'basket')).join('')}</div>` : '<div class="empty"><p>Nothing is hanging. Pieces you wear and hang up show here until they go in the basket.</p></div>';
+  h += `<p class="help">At the end of the day, choose <b>Hang</b> or <b>Basket</b> for what you wore. It starts on Basket for a top, and for a bottom on its ${D.wash.bottom === 1 ? 'first' : D.wash.bottom === 2 ? 'second' : D.wash.bottom === 3 ? 'third' : D.wash.bottom + 'th'} wear. Change these in More. If you don't choose, the same rule is used.</p>`;
+  return h;
+}
+
 /* laundry sheet */
 function openLaundry() {
-  const its = D.items.map(i => [i, laundryNow(i)]).filter(([, L]) => L.used).sort((a, b) => (b[1].dirty - a[1].dirty) || TORDER[a[0].type] - TORDER[b[0].type]);
+  const its = D.items.map(i => [i, laundryNow(i)]).filter(([, L]) => L.used || L.dirty).sort((a, b) => (b[1].dirty - a[1].dirty) || TORDER[a[0].type] - TORDER[b[0].type]);
   SH = { kind: 'laundry' };
-  const b = its.length ? `<p class="lede">Tick what went into the wash. A piece goes to the laundry after ${D.wash.top === 1 ? 'one wear for tops' : `${D.wash.top} wears for tops`} and ${plural(D.wash.bottom, 'wear')} for bottoms. Change this in More.</p>
+  const b = its.length ? `<p class="lede">Tick what went into the wash. Everything in the basket is ticked already.</p>
     <div class="field"><button class="btn small" data-act="laundry-all">Tick everything</button></div>
-    <div class="field">${its.map(([i, L]) => `<label class="check"><input type="checkbox" name="wash" value="${i.id}" ${L.dirty ? 'checked' : ''}>${sw(i, true)}<span>${esc(i.name)}<small>${L.dirty ? 'In the laundry' : `Worn ${L.n} of ${L.lim} times`}</small></span></label>`).join('')}</div>`
+    <div class="field">${its.map(([i, L]) => `<label class="check"><input type="checkbox" name="wash" value="${i.id}" ${L.dirty ? 'checked' : ''}>${sw(i, true)}<span>${esc(i.name)}<small>${L.dirty ? 'In the basket' : `Hanging · ${plural(L.n, 'wear')} since washing`}</small></span></label>`).join('')}</div>`
     : '<p class="lede">Nothing has been worn since the last wash.</p>';
   openSheet('Laundry done', b, its.length ? '<button class="btn primary" data-act="laundry-save">Mark as washed</button>' : '');
 }
@@ -1452,7 +1532,7 @@ function welcomeSteps() {
         <div class="wm-r"><span class="wm-d">Sun</span><span><b>Rust silk shirt + Olive midi skirt</b><small>${onDay(0)}</small></span></div>
         <div class="wm-r"><span class="wm-d">Mon</span><span><b>Sky blue poplin shirt + Black tailored trousers</b><small>${onDay(1)}</small></span></div>
         <div class="wm-r"><span class="wm-d">Tue</span><span><b>Mustard knit top + Charcoal pencil skirt</b><small>${onDay(2)}</small></span></div></div>
-      <p>A top goes to the laundry after one wear, a bottom after three. Anything in the wash moves to the back until you tap <b>Laundry done</b>.</p>
+      <p>At the end of the day, choose what you'll hang up and what goes in the basket. Anything in the basket moves to the back until you tap <b>Laundry done</b>.</p>
       <p>Plan the week ahead. Set Sunday first and the other days are picked around it, so the skirt you need isn't worn out by Wednesday.</p>`
   }, {
     icon: ICON.today,
@@ -1485,7 +1565,7 @@ function welcomeSteps() {
   } : {
     final: 'done', icon: ICON.today,
     title: "You're all set",
-    body: `<ul class="wl-ticks"><li>${TICK}<span><b>Today</b> picks your freshest top and bottom.</span></li><li>${TICK}<span><b>Week</b> plans ahead with the same picker and keeps the laundry in check.</span></li><li>${TICK}<span><b>Closet</b> has every piece, its history and its photos.</span></li></ul>`
+    body: `<ul class="wl-ticks"><li>${TICK}<span><b>Today</b> picks your freshest top and bottom.</span></li><li>${TICK}<span><b>Week</b> plans ahead with the same picker.</span></li><li>${TICK}<span><b>Laundry</b> shows what's in the basket and what's hanging.</span></li><li>${TICK}<span><b>Closet</b> has every piece, its history and its photos.</span></li></ul>`
   });
   return steps;
 }
@@ -1566,7 +1646,7 @@ function renderMore() {
   <p class="help">A piece is back at the front of the picker once it has rested this long, before and after any day it's planned for. Resting pieces still show in the picker, dimmed and after the rested ones.</p>
   <div class="sec-head"><h2>Wears before washing</h2></div>
   <div class="card">${[['top', 'Tops'], ['bottom', 'Bottoms'], ['dress', 'Dresses'], ['layer', 'Layers']].map(([k, l]) => `<div class="set-row"><div>${l}</div><div class="stepper"><button data-act="washlim" data-k="${k}" data-d="-1" aria-label="Fewer wears">−</button><output class="num">${plural(D.wash[k], 'wear')}</output><button data-act="washlim" data-k="${k}" data-d="1" aria-label="More wears">+</button></div></div>`).join('')}</div>
-  <p class="help">After this many wears a piece goes to the laundry and sits at the end of the picker until you tap <b>Laundry done</b> in Week. Shoes and bags never go to the laundry.</p>
+  <p class="help">At the end of the day, Hang or Basket starts on Basket once a piece reaches this many wears. Outfits you don't sort follow the same rule. Shoes and bags never go to the laundry.</p>
   <div class="sec-head"><h2>Occasions</h2><button class="btn small quiet" data-act="occ-add">Add</button></div>
   <div class="card">${D.occasions.map(o => `<div class="occ-row"><div class="occ-top"><input type="text" id="occ_${o.id}" data-occ="${o.id}" value="${esc(o.name)}" aria-label="Occasion name">${D.occasions.length > 1 ? `<button class="icon-btn" data-act="occ-del" data-id="${o.id}" aria-label="Remove ${esc(o.name)}">${ICON.x}</button>` : ''}</div>
     <div class="daychips" role="group" aria-label="Days for ${esc(o.name)}">${DOW_ORDER.map(k => `<button class="daychip" data-act="occ-day" data-id="${o.id}" data-d="${k}" aria-pressed="${(o.days || []).includes(k)}" aria-label="${DOW_LONG[k]}">${DOW_LETTER[k]}</button>`).join('')}</div></div>`).join('')}</div>
@@ -2171,7 +2251,10 @@ document.addEventListener('click', e => {
     case 'go-today': UI.date = todayStr(); UI.occ = dayOcc(UI.date); render(); break;
     case 'plan-pick': openPlanPicker(el.dataset.d); break;
     case 'plan-edit': { const l = D.logs.find(x => x.id === el.dataset.id); if (l) openPlanPicker(l.date, l.id); break; }
-    case 'pk-pick': case 'pk-mode': case 'pk-extra': case 'pk-occ': case 'pk-goes': case 'pk-nope': case 'pk-wear': pickerAct(act, el); break;
+    case 'pk-pick': case 'pk-mode': case 'pk-extra': case 'pk-occ': case 'pk-goes': case 'pk-nope': case 'pk-wear': case 'pk-wear-photo': pickerAct(act, el); break;
+    case 'sort-pick': el.parentNode.querySelectorAll('button').forEach(x => x.setAttribute('aria-checked', x === el)); break;
+    case 'sort-save': saveSort(el.dataset.log, el.closest('.sortcard')); break;
+    case 'lx-move': moveLaundry(el.dataset.id, el.dataset.to); break;
     case 'plan-occ': {
       const d = el.dataset.d, order = [...D.occasions.map(o => o.id), 'skip'], cur = planOcc(d), nx = order[(order.indexOf(cur) + 1) % order.length];
       commit(null, () => { D.dayOcc[d] = nx; if (nx !== 'skip') D.logs.forEach(l => { if (l.date === d && l.src !== 'import') l.occ = nx; }); }); break;
